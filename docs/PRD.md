@@ -308,6 +308,9 @@ riskLevel 값: NORMAL / CAUTION / RISK / NO_DATA. achievementRate가 없으면(�
 - DB: MySQL 8 (Docker) + Flyway
 - 개발 환경 (확인됨): Java 21.0.12 (Temurin), Node 24.19.0, Docker 29.9.2 / Docker Desktop 4.97.0, Git 2.45.1
 - Spring Boot, React, Vite 등 실제 설치 버전은 뼈대 생성 후 이 항목에 기록한다.
+- 백엔드 (확인됨, 2026-10-27 뼈대 생성 시): Spring Boot 4.1.2, Gradle 9.8.2 (Wrapper, Kotlin DSL), Spring Framework 7.0.10, Hibernate ORM 7.4.13.Final, Flyway 12.4.0 (flyway-core, flyway-mysql), MySQL Connector/J 9.7.0, Tomcat 11.0.27
+- DB (확인됨): MySQL 8.4.13 (Docker 이미지 mysql:8.4)
+- 프론트엔드 버전은 뼈대 생성 후 기록한다.
 
 ## 12. 가정과 미정
 

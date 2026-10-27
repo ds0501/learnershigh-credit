@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: learnershigh-credit
+  datasource:
+    # 로컬 기본값은 저장소 루트의 .env.example과 같다
+    url: ${DB_URL:jdbc:mysql://localhost:3307/learnershigh_credit}
+    username: ${DB_USERNAME:credit}
+    password: ${DB_PASSWORD:credit_local}
+  jpa:
+    # 스키마는 Flyway만 관리한다
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+  flyway:
+    # backend 폴더에서 실행하는 것을 기준으로 저장소 루트의 database/migrations를 가리킨다
+    locations: ${FLYWAY_LOCATIONS:filesystem:../database/migrations}
