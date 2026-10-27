@@ -27,3 +27,21 @@
 
 ## 실행 방법
 - (뼈대 생성 후 채움)
+
+## 작업 로그 (최신이 위)
+형식:
+### 날짜 — 제목
+- 한 일:
+- 바뀐 파일:
+- 확인 방법과 결과:
+- 결정과 이유:
+- 막힌 점과 해결:
+- 다음 할 일:
+
+### 2026-10-27 — 저장소 초기 세팅
+- 한 일: GitHub 저장소(learnershigh-credit) 생성, .gitignore 작성, docs/references 폴더 생성, CLAUDE.md와 PROGRESS.md 작성 후 첫 커밋과 push
+- 바뀐 파일: CLAUDE.md, docs/PROGRESS.md, .gitignore, docs/references/.gitkeep (커밋 cb2f0d2)
+- 확인 방법과 결과: push 후 origin/main에 올라간 것을 확인함. GitHub 화면에서의 확인은 아직 안 함
+- 결정과 이유: 큰 틀 이름은 "학생부 관리"를 임시로 사용하고 코드에서 상수 하나로만 정의하기로 함(정식 용어가 확정되지 않았기 때문)
+- 막힌 점과 해결: 없음. push 때 LF→CRLF 경고가 나왔지만 내용에는 영향 없음
+- 다음 할 일: PRD 추가, 별하님 초대, 백엔드와 프론트 뼈대 생성
