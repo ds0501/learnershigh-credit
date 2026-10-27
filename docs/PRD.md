@@ -310,7 +310,7 @@ riskLevel 값: NORMAL / CAUTION / RISK / NO_DATA. achievementRate가 없으면(�
 - Spring Boot, React, Vite 등 실제 설치 버전은 뼈대 생성 후 이 항목에 기록한다.
 - 백엔드 (확인됨, 2026-10-27 뼈대 생성 시): Spring Boot 4.1.2, Gradle 9.8.2 (Wrapper, Kotlin DSL), Spring Framework 7.0.10, Hibernate ORM 7.4.13.Final, Flyway 12.4.0 (flyway-core, flyway-mysql), MySQL Connector/J 9.7.0, Tomcat 11.0.27
 - DB (확인됨): MySQL 8.4.13 (Docker 이미지 mysql:8.4)
-- 프론트엔드 버전은 뼈대 생성 후 기록한다.
+- 프론트엔드 (확인됨, 2026-10-28 뼈대 생성 시): React 19.3.1, React DOM 19.3.1, Vite 8.3.5, TypeScript 7.0.2, react-router-dom 7.18.4, @vitejs/plugin-react 6.1.2 (npm 11.17.0, create-vite react-ts 템플릿)
 
 ## 12. 가정과 미정
 

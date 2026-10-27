@@ -4,6 +4,7 @@
 
 ## 필요한 것
 - Java 21
+- Node 24 (npm)
 - Docker (Docker Desktop)
 
 ## 실행 방법
@@ -37,3 +38,16 @@ cd backend
 curl http://localhost:8080/api/health
 ```
 `{"status":"ok"}`가 나오면 정상이다.
+
+### 5. 프론트 실행
+`frontend` 폴더에서 실행한다.
+```
+cd frontend
+npm install
+npm run dev
+```
+- http://localhost:5173 으로 연다. 메뉴는 `/credit`(고교학점제 관리), `/tasks`, `/records`, `/grades`다.
+- 개발 서버는 `/api` 요청을 http://localhost:8080 (백엔드)으로 넘긴다. 예: http://localhost:5173/api/health
+- `VITE_USE_MOCK`은 저장소 루트의 `.env`에서 읽는다. 값이 `false`일 때만 실제 API를 쓰고, 없거나 `true`면 mock 데이터를 쓴다. 값을 바꾸면 개발 서버를 다시 시작한다.
+- mock 모드에서는 백엔드 없이 화면을 볼 수 있다.
+- 빌드(타입 검사 포함): `npm run build`

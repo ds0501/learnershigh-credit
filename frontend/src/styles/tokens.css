@@ -1,0 +1,56 @@
+/*
+ * 디자인 값은 이 파일에만 둔다.
+ * 색상은 docs/references/의 목업과 기존 러너스하이 캡처에서 뽑은 값이다.
+ */
+:root {
+  /* 배경 */
+  --color-nav-bg: #000000;
+  --color-page-bg: #242629;
+  --color-surface: #1a1f25;
+  --color-surface-raised: #232732;
+  --color-surface-active: #121929;
+  --color-border: #333a44;
+
+  /* 글자 */
+  --color-text: #f2f4f7;
+  --color-text-muted: #8b93a1;
+  --color-text-subtle: #5d6573;
+  --color-text-on-accent: #0b1418;
+
+  /* 포인트(청록) */
+  --color-accent: #4ff0f7;
+  --color-accent-strong: #60e5f1;
+  --color-accent-dim: #2b7b82;
+
+  /* 상태 */
+  --color-risk: #f38c8e;
+  --color-risk-bg: #2a1b20;
+  --color-caution: #e8c25a;
+  --color-caution-bg: #2e2a1c;
+
+  /* 글자 크기 */
+  --font-family: 'Pretendard', 'Pretendard Variable', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
+    'Malgun Gothic', 'Noto Sans KR', sans-serif;
+  --font-size-xs: 12px;
+  --font-size-sm: 13px;
+  --font-size-md: 15px;
+  --font-size-lg: 18px;
+  --font-size-xl: 22px;
+  --font-size-display: 32px;
+  --font-weight-regular: 400;
+  --font-weight-bold: 700;
+
+  /* 간격, 모서리, 크기 */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-pill: 999px;
+  --nav-height: 56px;
+  --nav-item-size: 44px;
+  --content-max-width: 1440px;
+}

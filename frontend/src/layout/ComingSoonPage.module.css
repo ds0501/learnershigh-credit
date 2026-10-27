@@ -1,0 +1,13 @@
+.panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.message {
+  margin: 0;
+  color: var(--color-text-muted);
+}
