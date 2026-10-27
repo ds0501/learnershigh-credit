@@ -31,7 +31,6 @@
 - "주의" 상태 기준값 (임시: 성취율 40% 이상 50% 미만)
 - 과목 목록(약 290개)의 출처와 이용 조건
 - 필수 이수 학점 구조 (교육부 원문 확인 필요)
-- docs/references/의 이미지 4개(목업 2개, 기존 수행평가 캡처 2개)를 커밋할지. 아직 커밋하지 않음. 수행평가 캡처에는 실제 사람 이름이 보인다
 - 배포 시 프론트 서빙 방식 (새로고침 시 index.html로 돌려주는 설정은 개발 서버에서만 확인함)
 
 ## 실행 방법
@@ -54,6 +53,14 @@
 - 결정과 이유:
 - 막힌 점과 해결:
 - 다음 할 일:
+
+### 2026-10-28 — 참고 이미지를 git 추적에서 제외
+- 한 일: .gitignore에 `docs/references/*`와 `!docs/references/.gitkeep` 추가, CLAUDE.md 규칙에 참고 이미지 커밋 금지 한 줄 추가, PROGRESS.md "미정"에서 참고 이미지 항목 삭제. 이미지 파일 4개는 삭제하거나 옮기지 않고 로컬 docs/references/에 그대로 둠
+- 바뀐 파일: .gitignore, CLAUDE.md, docs/PROGRESS.md
+- 확인 방법과 결과: git status --short에 이미지 4개가 나오지 않음(.gitignore만 수정으로 표시). git check-ignore -v로 4개 모두 .gitignore의 `docs/references/*` 규칙에 걸리는 것 확인. git ls-files docs/references → .gitkeep만 추적됨
+- 결정과 이유: 참고 이미지(목업 2개, 기존 수행평가 캡처 2개)는 로컬에만 두고 커밋하지 않음. 기존 앱 캡처에 개인 이름이 보이기 때문
+- 막힌 점과 해결: 없음
+- 다음 할 일: DB 테이블 V1과 시연용 데이터 V2, 학점 현황 화면(mock). 새로 작업하는 사람은 참고 이미지를 저장소 밖에서 따로 받아 docs/references/에 넣어야 함
 
 ### 2026-10-28 — 프론트 뼈대와 큰 틀 레이아웃 추가
 - 한 일: create-vite(react-ts)로 frontend/ 생성(npm, workspaces 없음), react-router-dom 추가. 상단 아이콘 내비게이션 + 본문 레이아웃, 모듈 라우트 /credit, /tasks, /records, /grades (/와 없는 주소는 /credit으로 이동). /credit은 "학점 현황" 자리만, 나머지 셋은 "준비 중" 페이지. 디자인 값은 src/styles/tokens.css, 큰 틀 이름은 src/config/app.ts의 APP_NAME 하나. VITE_USE_MOCK을 보는 얇은 API 클라이언트(src/api/client.ts)와 빈 mock 목록(src/mocks/index.ts). 개발 서버 /api 프록시. PRD 11장 버전 기록, README 프론트 실행 방법 추가

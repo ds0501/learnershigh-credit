@@ -32,3 +32,7 @@ out/
 # OS
 .DS_Store
 Thumbs.db
+
+# 참고 이미지 (로컬 전용, 커밋 금지)
+docs/references/*
+!docs/references/.gitkeep
