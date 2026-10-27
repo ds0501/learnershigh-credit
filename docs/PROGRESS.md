@@ -8,16 +8,17 @@
 - [x] 프론트 뼈대 (실행 확인: frontend에서 npm run build 통과(tsc 타입 검사 포함), npm run dev 후 http://localhost:5173 → 200)
 - [ ] DB 테이블 V1 / 초기 데이터 V2
 - [x] 큰 틀 레이아웃 (실행 확인: /credit, /tasks, /records, /grades 각각 200, headless Edge로 각 주소를 직접 열어 제목과 활성 메뉴가 맞게 그려지는 것 확인, 백엔드를 켠 상태에서 http://localhost:5173/api/health → 200 {"status":"ok"})
-- [ ] 학점 현황 화면 (mock)
+- [x] 학점 현황 화면 (mock) (실행 확인: npm run build 통과, 개발 서버 + headless Edge(CDP)로 /credit 텍스트 18개 항목 확인, 2학년 1학기 탭 클릭 시 "등록된 과목이 없습니다", VITE_USE_MOCK=false + 백엔드 꺼짐에서 오류 상태 확인)
 - [ ] 과목 등록 모달
 - [ ] 이수 위험 계산 + 표시
 
 ## 지금 하는 것
-- DB 테이블 V1 작성 준비 (저장소 초기 세팅, 문서 작성, 백엔드 뼈대, 프론트 뼈대와 큰 틀 레이아웃은 완료)
+- DB 테이블 V1 작성 준비 (저장소 초기 세팅, 문서, 백엔드·프론트 뼈대, 큰 틀 레이아웃, 학점 현황 화면(mock)은 완료)
 
 ## 다음 할 일 (현재 기준)
 - DB 테이블 V1, 시연용 초기 데이터 V2 작성 (PRD 7장, 9장)
-- 학점 현황 화면 (mock 데이터는 src/mocks/, 자리는 frontend/src/modules/credit/CreditPage.tsx)
+- 학점 현황 API 3개 백엔드 구현 (summary, courses, required-courses. 응답 모양은 frontend/src/modules/credit/types.ts와 맞춘다)
+- 과목 등록 모달 (PRD F2)
 
 ## 막힌 것
 - 없음
@@ -31,6 +32,8 @@
 - "주의" 상태 기준값 (임시: 성취율 40% 이상 50% 미만)
 - 과목 목록(약 290개)의 출처와 이용 조건
 - 필수 이수 학점 구조 (교육부 원문 확인 필요)
+- GET /required-courses 응답 모양 (PRD 8장에 예시가 없어 임시로 { remainingCount, courses: 과목 목록(courses 응답의 과목과 같은 모양) }으로 정함)
+- 1학년 1학기 이수 완료 과목 구성 (PRD 9장: 목업 숫자 교과 29, 창체 3에 맞춰 정한다고만 되어 있음. mock에는 요약 숫자만 넣고 과목은 없음)
 - 배포 시 프론트 서빙 방식 (새로고침 시 index.html로 돌려주는 설정은 개발 서버에서만 확인함)
 
 ## 실행 방법
@@ -54,13 +57,35 @@
 - 막힌 점과 해결:
 - 다음 할 일:
 
+### 2026-10-28 — 학점 현황 화면(mock) 추가
+- 한 일: frontend/src/modules/credit/에 학점 현황 화면을 만듦. 왼쪽은 졸업 학점 진행바(이수 완료/수강 중/남은 학점), 교과·창체 학점, 남은 필수 이수 과목 체크리스트(배지: 수강 중/주의/이수 위험)이고, 오른쪽은 경고 배너, 학기 탭(1-1~3-2), 선택 학기 과목 표(과목명, 유형, 학점, 현재 성취율, 상태)와 학기 합계. "주간 학습" 열은 만들지 않음. 위험 표시가 있는 세 곳(배너, 필수 과목, 과목 표) 아래에 "참고용 예측이며 학교의 공식 판정이 아닙니다" 표시. 로딩/빈 상태/오류(다시 시도 버튼) 상태. PRD 9장 시연 데이터로 mock 작성. API 함수 getSummary, getCourses(gradeYear, term), getRequiredCourses(mock 또는 /api/student/credit/...)
+- 바뀐 파일: frontend/src/api/client.ts(query 파라미터, mock 지연 300ms), frontend/src/api/useAsync.ts(신규), frontend/src/mocks/index.ts, frontend/src/mocks/credit.ts(신규), frontend/src/modules/credit/(CreditPage.tsx, CreditPage.module.css, types.ts, api.ts, labels.ts, components/ 아래 StatusBadge, Disclaimer, StateMessage, SummaryCard, RequiredCourseList, RiskAlertBanner, SemesterTabs, CourseTable와 각 .module.css), frontend/src/styles/tokens.css(--color-risk-border, --color-caution-border 추가), docs/PROGRESS.md
+- 확인 방법과 결과:
+  1) frontend에서 npm run build → 통과(타입 오류 없음). npx oxlint → 경고 0개(처음에는 useAsync에서 경고 3개가 나와 구조를 고침)
+  2) npm run dev 후 Node 스크립트로 headless Edge를 CDP로 조종해 /credit을 열고 화면 텍스트를 확인함. 18개 항목 모두 통과: 로딩 문구 표시, "32 / 192학점 이수", "교과 29 / 174학점", "창의적 체험활동 3 / 18학점", 이수 완료 32·수강 중 32·남은 학점 128, 표의 "통합과학2 공통 4 35% 이수 위험", "공통수학2 공통 4 46% 주의", "남은 필수 이수 과목 7과목"(목록 7개), 필수 과목별 배지, 배너 "이수 위험 과목 1개 · 주의 1개", 면책 문구 3곳, "주간 학습" 없음, "학기 합계 32학점"
+  3) 같은 스크립트로 "2학년 1학기" 탭을 클릭 → "등록된 과목이 없습니다" 표시, 표 사라짐, 주소가 /credit?term=2-1로 바뀜. 새로고침 후에도 2학년 1학기 선택 유지. 1학년 2학기를 다시 누르면 표가 다시 나옴
+  4) 오류 상태: VITE_USE_MOCK=false로 개발 서버를 5174 포트에 따로 띄우고 백엔드는 끈 상태에서 /credit을 엶 → 세 영역 모두 "데이터를 불러오지 못했습니다." + "다시 시도" 버튼. vite 로그에서 /api/student/credit/summary, /courses?gradeYear=1&term=2, /required-courses 세 경로로 프록시 요청이 나간 것 확인(백엔드 API가 없어 실제 응답은 확인 못 함)
+  스크린샷: headless Edge로 1학년 2학기 화면과 2학년 1학기(빈 상태) 화면을 찍어 배치를 눈으로 봄(로컬 임시 폴더에만 있고 커밋하지 않음). 목업과 시각적으로 같은지에 대한 최종 판단은 사용자가 직접 확인 예정
+  확인 후 개발 서버 두 개 종료(5173, 5174 포트 비어 있음 확인). "다시 시도" 버튼을 눌러 재요청되는 동작은 확인 못 함. 화면 폭이 좁을 때(모바일) 배치는 확인 못 함
+- 결정과 이유:
+  - 선택한 학기를 주소 쿼리(?term=1-2)에 둠: 새로고침해도 탭이 유지되고 브라우저 확인도 쉬움. 쿼리가 없으면 데모 학생의 현재 학기(1학년 2학기)
+  - required-courses 응답 모양은 PRD에 예시가 없어 { remainingCount, courses }로 임시로 정하고 "미정"에 적음
+  - mock에는 1학년 2학기 과목만 넣음. 1학년 1학기 이수 완료 과목은 구성이 정해지지 않아 요약 숫자(32학점, 교과 29, 창체 3)에만 반영. 그래서 1학년 1학기 탭도 지금은 "등록된 과목이 없습니다"가 나옴
+  - 배너는 목업처럼 오른쪽 패널 맨 위에 둠. 과목별 문구는 남은 필수 과목 데이터에서 만들어서 다른 학기 탭을 눌러도 유지됨. "주간 학습" 내용은 빼고 성취율과 필요 평균만 표시. 필요 평균(45점)은 PRD 8장 응답 예시의 requiredAverage 값을 mock에 넣은 것
+  - 배너 문구의 "이수 기준(40%)"은 화면 표시용 상수(labels.ts의 COMMON_MIN_ACHIEVEMENT)이고, 판정은 데이터의 riskLevel을 그대로 씀
+  - 창의적 체험활동은 성취율이 없어 "—"와 "수강 중"으로 표시(목업과 같음)
+  - mock 응답에 300ms 지연을 줘서 로딩 상태가 실제로 보이게 함
+  - 과목 등록 모달은 이번 범위가 아니라서 목업의 "신규 과목 등록" 버튼도 넣지 않음
+- 막힌 점과 해결: 첫 화면 확인에서 1건 실패 → 화면 문제가 아니라 확인 스크립트가 표 칸 사이 탭 문자를 정규화하지 않아서였음. 스크립트를 고쳐 다시 돌려 18개 모두 통과
+- 다음 할 일: DB 테이블 V1과 시연용 데이터 V2, 학점 현황 API 백엔드 구현, 과목 등록 모달
+
 ### 2026-10-28 — 참고 이미지를 git 추적에서 제외
 - 한 일: .gitignore에 `docs/references/*`와 `!docs/references/.gitkeep` 추가, CLAUDE.md 규칙에 참고 이미지 커밋 금지 한 줄 추가, PROGRESS.md "미정"에서 참고 이미지 항목 삭제. 이미지 파일 4개는 삭제하거나 옮기지 않고 로컬 docs/references/에 그대로 둠
 - 바뀐 파일: .gitignore, CLAUDE.md, docs/PROGRESS.md
 - 확인 방법과 결과: git status --short에 이미지 4개가 나오지 않음(.gitignore만 수정으로 표시). git check-ignore -v로 4개 모두 .gitignore의 `docs/references/*` 규칙에 걸리는 것 확인. git ls-files docs/references → .gitkeep만 추적됨
 - 결정과 이유: 참고 이미지(목업 2개, 기존 수행평가 캡처 2개)는 로컬에만 두고 커밋하지 않음. 기존 앱 캡처에 개인 이름이 보이기 때문
 - 막힌 점과 해결: 없음
-- 다음 할 일: DB 테이블 V1과 시연용 데이터 V2, 학점 현황 화면(mock). 새로 작업하는 사람은 참고 이미지를 저장소 밖에서 따로 받아 docs/references/에 넣어야 함
+- 다음 할 일: DB 테이블 V1과 시연용 데이터 V2, 학점 현황 화면(mock).
 
 ### 2026-10-28 — 프론트 뼈대와 큰 틀 레이아웃 추가
 - 한 일: create-vite(react-ts)로 frontend/ 생성(npm, workspaces 없음), react-router-dom 추가. 상단 아이콘 내비게이션 + 본문 레이아웃, 모듈 라우트 /credit, /tasks, /records, /grades (/와 없는 주소는 /credit으로 이동). /credit은 "학점 현황" 자리만, 나머지 셋은 "준비 중" 페이지. 디자인 값은 src/styles/tokens.css, 큰 틀 이름은 src/config/app.ts의 APP_NAME 하나. VITE_USE_MOCK을 보는 얇은 API 클라이언트(src/api/client.ts)와 빈 mock 목록(src/mocks/index.ts). 개발 서버 /api 프록시. PRD 11장 버전 기록, README 프론트 실행 방법 추가

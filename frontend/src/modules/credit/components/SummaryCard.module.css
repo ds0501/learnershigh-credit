@@ -1,0 +1,113 @@
+.card {
+  padding: var(--space-5);
+  border: 1px solid var(--color-accent-dim);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.caption {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.headline {
+  margin: var(--space-1) 0 var(--space-4);
+  font-size: var(--font-size-md);
+  color: var(--color-text-muted);
+}
+
+.big {
+  font-size: var(--font-size-display);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-accent);
+}
+
+.bar {
+  display: flex;
+  height: 8px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--color-border);
+}
+
+.barCompleted {
+  background: var(--color-accent-strong);
+}
+
+.barInProgress {
+  background: var(--color-accent-dim);
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+  margin: var(--space-4) 0 0;
+}
+
+.stat {
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-raised);
+}
+
+.stat dt {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.stat dd {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+}
+
+.swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.swatchCompleted {
+  background: var(--color-accent-strong);
+}
+
+.swatchInProgress {
+  background: var(--color-accent-dim);
+}
+
+.swatchRemaining {
+  border: 1px solid var(--color-text-subtle);
+}
+
+.note {
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-subtle);
+}
+
+.breakdown {
+  margin: var(--space-4) 0 0;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-1) 0;
+  font-size: var(--font-size-sm);
+}
+
+.row dt {
+  color: var(--color-text-muted);
+}
+
+.row dd {
+  margin: 0;
+  font-weight: var(--font-weight-bold);
+}

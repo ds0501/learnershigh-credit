@@ -1,0 +1,36 @@
+.badge {
+  display: inline-block;
+  padding: 1px var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  line-height: 1.6;
+  white-space: nowrap;
+  color: var(--color-text-muted);
+}
+
+.inProgress {
+  color: var(--color-text-muted);
+}
+
+.caution {
+  color: var(--color-caution);
+  background: var(--color-caution-bg);
+  border-color: var(--color-caution-border);
+}
+
+.risk {
+  color: var(--color-risk);
+  background: var(--color-risk-bg);
+  border-color: var(--color-risk-border);
+}
+
+.noData {
+  color: var(--color-text-subtle);
+  border-style: dashed;
+}
+
+.completed {
+  color: var(--color-accent);
+  border-color: var(--color-accent-dim);
+}

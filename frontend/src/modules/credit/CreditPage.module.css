@@ -1,14 +1,51 @@
-.placeholder {
+.layout {
+  display: grid;
+  grid-template-columns: minmax(320px, 2fr) 3fr;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.column {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 320px;
-  border: 1px dashed var(--color-border);
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.panel {
+  min-width: 0;
+  padding: var(--space-5);
   border-radius: var(--radius-md);
   background: var(--color-surface);
 }
 
-.message {
+.coursesPanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.panelHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: var(--space-2);
+}
+
+.panelTitle {
   margin: 0;
-  color: var(--color-text-muted);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+}
+
+.count {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-accent);
+}
+
+@media (max-width: 960px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
 }
