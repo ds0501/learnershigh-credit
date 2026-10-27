@@ -3,7 +3,7 @@
 
 ## 완료
 - [x] GitHub 저장소 생성, .gitignore, docs/references 폴더
-- [ ] 문서 3종 (CLAUDE.md, PROGRESS.md, PRD.md)
+- [x] 문서 3종 (CLAUDE.md, PROGRESS.md, PRD.md)
 - [ ] 백엔드 뼈대 (실행 확인: )
 - [ ] 프론트 뼈대
 - [ ] DB 테이블 V1 / 초기 데이터 V2
@@ -37,6 +37,14 @@
 - 결정과 이유:
 - 막힌 점과 해결:
 - 다음 할 일:
+
+### 2026-10-27 — PRD 추가
+- 한 일: docs/PRD.md(PRD 초안)를 저장소에 추가, PROGRESS.md의 "문서 3종" 체크박스를 완료로 변경
+- 바뀐 파일: docs/PRD.md, docs/PROGRESS.md
+- 확인 방법과 결과: 문서만 바뀌어 실행해서 확인할 것은 없음. PRD의 제도 내용과 수치(192학점, 이수 기준 등)를 원문과 대조하는 것은 확인 못 함. push 결과는 이 항목을 쓰는 시점에는 확인 못 함
+- 결정과 이유: PRD는 받은 초안 내용을 수정하지 않고 그대로 커밋함(PRD에 이 문서를 구현 기준으로 삼는다고 적혀 있어, 바뀌는 내용은 이후 PRD와 PROGRESS.md에 함께 반영하기 위해)
+- 막힌 점과 해결: 없음
+- 다음 할 일: 별하님 초대, 백엔드와 프론트 뼈대 생성, 큰 틀 레이아웃 (PRD 13장 화요일 목표)
 
 ### 2026-10-27 — 저장소 초기 세팅
 - 한 일: GitHub 저장소(learnershigh-credit) 생성, .gitignore 작성, docs/references 폴더 생성, CLAUDE.md와 PROGRESS.md 작성 후 첫 커밋과 push
