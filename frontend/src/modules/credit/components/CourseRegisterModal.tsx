@@ -85,7 +85,6 @@ export function CourseRegisterModal({ initialTermKey, onClose, onRegistered }: C
 
   const selectCatalogItem = (item: CatalogItem) => {
     setSelected(item);
-    setCredits(item.credits);
     clearError('name');
     clearError('courseType');
   };
@@ -280,7 +279,7 @@ export function CourseRegisterModal({ initialTermKey, onClose, onRegistered }: C
                           >
                             <span className={styles.resultName}>{item.name}</span>
                             <span className={styles.resultMeta}>
-                              {item.subjectGroup} · {COURSE_TYPE_LABEL[item.courseType]} · {item.credits}학점
+                              {item.subjectGroup} · {COURSE_TYPE_LABEL[item.courseType]}
                             </span>
                           </button>
                         </li>
@@ -294,7 +293,7 @@ export function CourseRegisterModal({ initialTermKey, onClose, onRegistered }: C
               <p className={styles.info} data-testid="autofill-info">
                 <InfoIcon />
                 <span>
-                  표준 과목 정보로 교과(군)·유형·학점을 자동 입력했어요 · 교과(군) <strong>{selected.subjectGroup}</strong>
+                  표준 과목 정보로 교과(군)·유형을 자동 입력했어요 · 교과(군) <strong>{selected.subjectGroup}</strong>
                 </span>
               </p>
             )}
