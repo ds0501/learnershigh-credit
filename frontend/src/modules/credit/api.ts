@@ -14,19 +14,20 @@ import type {
 
 const BASE = '/student/credit';
 
+// 학점 현황 요약은 실제 백엔드로 보낸다 (GET /summary, 계산 서비스 구현됨)
 export function getSummary() {
-  return apiGet<CreditSummary>(`${BASE}/summary`);
+  return apiGet<CreditSummary>(`${BASE}/summary`, {}, true);
 }
 
 export function getCourses(gradeYear: number, term: number) {
-  return apiGet<SemesterCourses>(`${BASE}/courses`, { gradeYear, term });
+  return apiGet<SemesterCourses>(`${BASE}/courses`, { gradeYear, term }, true);
 }
 
 export function getRequiredCourses() {
-  return apiGet<RequiredCourses>(`${BASE}/required-courses`);
+  return apiGet<RequiredCourses>(`${BASE}/required-courses`, {}, true);
 }
 
-// 과목 등록 모달(검색+등록)만 실제 백엔드로 보낸다. 나머지 API는 아직 없어 mock을 그대로 쓴다
+// 요약, 조회, 과목 검색+등록은 실제 백엔드로 보낸다. 나머지(상태 변경·삭제·평가)는 아직 없어 mock을 그대로 쓴다
 export function searchCatalog(query: string) {
   return apiGet<CatalogItem[]>(`${BASE}/catalog`, { query }, true);
 }
