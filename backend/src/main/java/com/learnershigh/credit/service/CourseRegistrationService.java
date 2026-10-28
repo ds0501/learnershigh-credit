@@ -64,9 +64,9 @@ public class CourseRegistrationService {
 		Integer writtenWeight = creative ? 0 : request.writtenWeight();
 		Integer performanceWeight = creative ? 0 : request.performanceWeight();
 
-		List<StudentCourse> sameTerm =
-				studentCourseRepository.findByStudentIdAndGradeYearAndTerm(DemoStudent.ID, request.gradeYear(), request.term());
-		List<String> sameTermNames = sameTerm.stream().map(this::resolveName).toList();
+		List<StudentCourse> sameTerm = studentCourseRepository
+				.findByStudentIdAndGradeYearAndTermOrderByIdAsc(DemoStudent.ID, request.gradeYear(), request.term());
+		List<String> sameTermNames = sameTerm.stream().map(catalogService::resolveCourseName).toList();
 
 		Map<String, String> errors = new LinkedHashMap<>();
 		validateDraft(request, resolvedName, writtenWeight, performanceWeight, creative, sameTermNames, errors);
@@ -120,13 +120,6 @@ public class CourseRegistrationService {
 		} catch (NumberFormatException exception) {
 			return null;
 		}
-	}
-
-	private String resolveName(StudentCourse course) {
-		if (course.getCatalogId() != null) {
-			return catalogService.findById(course.getCatalogId()).map(CourseCatalog::getName).orElse("");
-		}
-		return course.getCustomName() == null ? "" : course.getCustomName();
 	}
 
 	// 중복 비교용 과목명 (공백과 대소문자 무시, frontend normalizeCourseName과 같음)

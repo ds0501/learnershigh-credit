@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 
 import com.learnershigh.credit.dto.CatalogItemResponse;
 import com.learnershigh.credit.entity.CourseCatalog;
+import com.learnershigh.credit.entity.StudentCourse;
 import com.learnershigh.credit.repository.CourseCatalogRepository;
 
 // 표준 과목 검색 (api-contract.md 4.4)
@@ -37,6 +38,14 @@ public class CourseCatalogService {
 	// 등록 처리에서 쓰는 단건 조회. 없으면 Optional.empty()를 그대로 돌려준다(검증은 호출하는 쪽에서 한다)
 	public Optional<CourseCatalog> findById(Long id) {
 		return catalogRepository.findById(id);
+	}
+
+	// 학생 과목의 과목명. catalogId가 있으면 catalog.name, 없으면 customName (StudentCourse는 과목명을 저장하지 않음)
+	public String resolveCourseName(StudentCourse course) {
+		if (course.getCatalogId() != null) {
+			return findById(course.getCatalogId()).map(CourseCatalog::getName).orElse("");
+		}
+		return course.getCustomName() == null ? "" : course.getCustomName();
 	}
 
 }

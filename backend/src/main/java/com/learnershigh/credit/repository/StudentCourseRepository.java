@@ -8,6 +8,9 @@ import com.learnershigh.credit.entity.StudentCourse;
 
 public interface StudentCourseRepository extends JpaRepository<StudentCourse, Long> {
 
-	List<StudentCourse> findByStudentIdAndGradeYearAndTerm(String studentId, Integer gradeYear, Integer term);
+	// 등록 순서(id 오름차순)로 돌려준다 (api-contract.md 4.2 "과목 순서: 등록 순서")
+	List<StudentCourse> findByStudentIdAndGradeYearAndTermOrderByIdAsc(String studentId, Integer gradeYear, Integer term);
+
+	List<StudentCourse> findByStudentIdOrderByIdAsc(String studentId);
 
 }

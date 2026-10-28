@@ -8,6 +8,45 @@
 - 막힌 점:
 - 다음 할 일:
 
+### 2026-10-28 — GET /courses, GET /required-courses 구현, 과목 표·필수 과목 패널 실제 API 연결
+- 한 일:
+  1) GET /api/student/credit/courses?gradeYear=&term= (api-contract.md 4.2): CourseQueryService.getCourses가 그 학년·학기 과목을 등록 순서(id 오름차순)로 가져와 totalCredits(학점 합)와 과목 목록을 돌려줌. 과목이 없으면 courses: [], totalCredits: 0
+  2) GET /api/student/credit/required-courses (api-contract.md 4.3): 학생의 전체 과목 중 courseType=COMMON이고 status != COMPLETED인 것만 필터링
+  3) 두 API가 공통으로 쓰는 "StudentCourse → CourseItem 변환"을 CourseItemAssembler로 뽑아냄(이름 조회 + CreditCalculationService.evaluate 호출). CourseRegistrationService에 있던 중복된 이름-조회 로직(private resolveName)도 CourseCatalogService.resolveCourseName(공용)으로 옮겨 합침
+  4) StudentCourseRepository의 조회 메서드에 OrderByIdAsc를 붙여 등록 순서를 보장(findByStudentIdAndGradeYearAndTermOrderByIdAsc, findByStudentIdOrderByIdAsc) — 이전엔 순서 보장이 없었음(등록 중복 검사·요약 집계는 순서와 무관해 문제없었지만 화면 표시는 순서가 필요해서 이번에 추가)
+  5) frontend modules/credit/api.ts의 getCourses·getRequiredCourses에 forceReal:true 적용(요약·catalog·등록과 같은 패턴)
+- 바뀐 파일: backend/src/main/java/com/learnershigh/credit/service/{CourseItemAssembler,CourseQueryService}.java(신규), credit/dto/{SemesterCoursesResponse,RequiredCoursesResponse}.java(신규), credit/service/{CourseCatalogService,CourseRegistrationService,CreditSummaryService}.java(수정 — resolveCourseName 공용화, repository 메서드명 변경), credit/repository/StudentCourseRepository.java(OrderByIdAsc), credit/controller/CreditCourseController.java(GET courses·required-courses 추가), backend/src/test/java/com/learnershigh/credit/service/{CourseQueryServiceTest,CourseItemAssemblerTest}.java(신규), CourseRegistrationServiceTest.java·CreditSummaryServiceTest.java(리포지토리 메서드명 변경 반영), frontend/src/modules/credit/api.ts(getCourses·getRequiredCourses forceReal)
+- 확인 결과(확인하지 못한 것 포함):
+  - 단위 테스트 6개 추가(CourseQueryServiceTest 4개, CourseItemAssemblerTest 1개 — 나머지는 기존 리포지토리 메서드명 변경에 따른 수정), `./gradlew build` 전체 통과(총 32개)
+  - 실제 서버로 curl 확인: 사용자가 화면에서 직접 등록한 "확률과 통계"(2학년 1학기, GENERAL, 4학점)가 GET /courses?gradeYear=2&term=1에 정상적으로 나타남(등록은 이전부터 실제 DB에 저장되고 있었는데 조회 API가 없어 화면에 안 보였던 것 — 이번에 그 문제를 해결함). GET /required-courses는 공통과목 중 미이수 8개(성취율·위험단계 포함, RISK인 통합과학2만 requiredAverage 필드 있음)를 정확히 돌려줌
+  - Vite 개발 서버(5173) 프록시로도 같은 응답 확인. frontend 단위 테스트(68개) 전부 통과
+  - 확인 못 함: 화면(브라우저)에서 실제로 과목 표·필수 과목 패널이 이 값으로 바뀌는 모습 — 브라우저 확장이 연결되지 않아 여전히 못 봄
+- 결정과 이유:
+  - CourseRegistrationService의 private resolveName을 지우고 CourseCatalogService.resolveCourseName로 합친 이유: 똑같은 "catalogId면 catalog.name, 아니면 customName" 로직이 세 번째로 필요해져서(등록 중복검사, 요약과 무관하지만 이번 조회 두 곳) 중복을 없앰
+  - 과목 상세(GET courses/{courseId})·평가 변경 API는 여전히 mock이라, 방금 실제 DB에 생긴 과목을 화면에서 눌러 점수를 입력하려 하면 mock 저장소에 그 id가 없어 오류(404)가 난다 — 다음 작업(PROGRESS.md "다음 할 일" 1번)에서 해결 예정. 지금 사용자에게 바로 알림
+- 막힌 점: 없음
+- 다음 할 일: GET courses/{courseId}(과목 상세) + 과목 변경 API(PATCH·DELETE) + 평가 API를 실제 백엔드로 구현 — 그래야 방금 생긴 "표에는 보이는데 눌러서 점수 입력하면 오류나는" 간극이 없어짐
+
+### 2026-10-28 — 계산 서비스와 GET /summary 구현, 첫 화면 요약 카드 실제 API 연결
+- 한 일:
+  1) 계산 서비스(CreditCalculationService): frontend domain/completion.ts(achievementRate, attendanceRate, riskLevel, requiredAverage)를 그대로 포팅. 차이점은 기준값을 COMPLETION_RULES 상수 대신 credit_completion_rule(course_type별 effective_year가 가장 큰 행)에서 읽음(CLAUDE.md "이수 기준은 설정값으로 둔다")
+  2) 엔티티·리포지토리 신규 추가: Assessment(credit_assessment), CompletionRule(credit_completion_rule), GraduationRule(credit_graduation_rule) + 각 리포지토리. StudentCourseRepository에 findByStudentId 추가
+  3) GET /api/student/credit/summary (api-contract.md 4.1): CreditSummaryService가 학생의 전체 과목을 이수 상태로 나눠 학점을 더하고, 수강 중 과목만 계산 서비스로 평가해 alert(riskCount/cautionCount)를 센다. DTO는 CreditSummaryResponse/CreditProgressResponse/CreditAlertResponse(record)
+  4) frontend modules/credit/api.ts의 getSummary()에 forceReal:true 적용 — catalog 검색·과목 등록과 같은 방식으로 VITE_USE_MOCK 값과 관계없이 항상 실제 백엔드를 호출하도록 바꿈(첫 화면 요약 카드가 mock이 아니라 DB 값을 보여주게)
+- 바뀐 파일: backend/src/main/java/com/learnershigh/credit/entity/{Assessment,CompletionRule,GraduationRule}.java(신규), credit/repository/{AssessmentRepository,CompletionRuleRepository,GraduationRuleRepository}.java(신규), credit/repository/StudentCourseRepository.java(findByStudentId 추가), credit/service/{CourseEvaluation,CreditCalculationService,CreditSummaryService}.java(신규), credit/dto/{CreditProgressResponse,CreditAlertResponse,CreditSummaryResponse}.java(신규), credit/controller/CreditCourseController.java(GET /summary 추가), backend/src/test/java/com/learnershigh/credit/service/{CreditCalculationServiceTest,CreditSummaryServiceTest}.java(신규), frontend/src/modules/credit/api.ts(getSummary forceReal)
+- 확인 결과(확인하지 못한 것 포함):
+  - 백엔드 단위 테스트 11개 추가(PRD 6장 테스트 케이스 7개 포함) 전부 통과, `./gradlew build` 전체 통과(기존 CourseRegistrationServiceTest 포함 26개 전부 통과). 처음엔 Mockito strict stubbing 때문에 8개가 실패(UnnecessaryStubbingException 7개 — 시나리오마다 안 쓰는 필드가 있어서 lenient()로 바꿈. UnfinishedStubbingException 1개 — when(...).thenReturn(Optional.of(graduationRule(...))) 처럼 thenReturn 인자 안에서 또 다른 mock의 when()을 부르는 중첩 스터빙 문제라 변수로 빼서 해결, 이전 WORKLOG의 CourseRegistrationServiceTest와 같은 종류의 문제)
+  - 실제 서버(Java 21 + MySQL, Flyway V5까지 적용된 상태)로 GET /api/student/credit/summary를 curl로 직접 호출: {"graduationCredits":192,"completedCredits":32,"inProgressCredits":36,"remainingCredits":124,"subjectCredits":{"earned":29,"required":174},"creativeCredits":{"earned":3,"required":18},"alert":{"riskCount":1,"cautionCount":1}} — 내부적으로 32+36+124=192 일치, subjectCredits.earned(29)=completedCredits(32)-creativeCredits.earned(3) 일치 확인
+  - Vite 개발 서버(5173)를 통해 같은 엔드포인트(/api/student/credit/summary)를 curl로 호출해 프록시가 백엔드와 같은 값을 돌려주는 것까지 확인. 다만 브라우저 확장(claude-in-chrome)이 연결되어 있지 않아 실제 화면(SummaryCard)이 이 값으로 렌더링되는 모습은 직접 보지 못함(확인 못 함 — curl로 받은 응답 모양은 frontend CreditSummary 타입과 필드가 일치하는 것만 코드로 대조함)
+  - 작업 중 포트 8080을 이미 점유하고 있던 이전 백엔드 프로세스(이번 변경 전 빌드로 2시간 넘게 떠 있던 것)를 발견해 종료하고 새로 빌드한 걸로 재기동함
+  - GET /courses, GET /required-courses는 이번에 만들지 않아 여전히 mock(VITE_USE_MOCK)으로 동작함. 화면의 "남은 필수 이수 과목", "학기별 수강 과목" 패널과 경고 배너의 과목 목록 부분은 아직 mock 데이터 기준
+- 결정과 이유:
+  - 완료 과목의 평가는 요약 계산에 쓰지 않아(경고는 수강 중 과목만 센다) AssessmentRepository 조회를 inProgress 과목 id로만 제한함(불필요한 조회 줄임)
+  - credit_completion_rule·credit_graduation_rule에 맞는 행이 없으면(데이터 누락) 조용히 기본값을 추측하지 않고 IllegalStateException을 던지도록 함 — CLAUDE.md "확인되지 않은 것은 추측하지 말라"에 맞춰 데이터 문제를 숨기지 않기로 함
+  - PROGRESS.md "미정"에 있던 "성취율 소수 오차 처리 방식"을 이번에 정함: frontend domain/completion.ts와 똑같이 별도 허용 오차 없이 double 값을 그대로 경계(40%, 50% 등)와 비교한다. 성취율 계산이 정수 점수/정수 반영비율의 곱·나눗셈이라 floating point 오차가 경계값에 걸릴 만큼 크지 않다고 보고 BigDecimal 등 더 복잡한 처리는 넣지 않음. CreditCalculationServiceTest에 frontend의 "반올림 전 값으로 판정한다"(39.6%→RISK, 49.9%→CAUTION, 50%→NORMAL) 테스트를 그대로 옮겨 확인함
+- 막힌 점: 없음
+- 다음 할 일: PROGRESS.md "다음 할 일" 2번 나머지(GET courses, GET required-courses) → 3번(과목 변경 API) → 4번(평가 API). 다 되면 VITE_USE_MOCK=false로 전체 전환하고 api-contract.md 예시와 실제 응답 비교
+
 ### 2026-10-28 — 공통 처리와 과목 검색·등록 API 구현
 - 한 일:
   1) 공통 처리: com.learnershigh.common.DemoStudent(ID="0", 로그인 없어 전 모듈 공통으로 씀). com.learnershigh.common.exception에 ApiException(abstract)/ValidationException(400)/NotFoundException(404, fieldErrors 항상 빈 맵)/ErrorResponse(record)/GlobalExceptionHandler(@RestControllerAdvice)로 오류 응답을 { message, fieldErrors } 모양으로 통일. 성공 코드는 컨트롤러 메서드의 @ResponseStatus·리턴 타입으로 표현(조회 200 기본값, 등록 201)

@@ -40,7 +40,7 @@ class CourseRegistrationServiceTest {
 	@BeforeEach
 	void setUp() {
 		service = new CourseRegistrationService(studentCourseRepository, catalogService);
-		when(studentCourseRepository.findByStudentIdAndGradeYearAndTerm(any(), any(), any()))
+		when(studentCourseRepository.findByStudentIdAndGradeYearAndTermOrderByIdAsc(any(), any(), any()))
 			.thenReturn(List.of());
 	}
 
@@ -137,9 +137,8 @@ class CourseRegistrationServiceTest {
 	@Test
 	void 같은_학기에_이미_등록된_과목명() {
 		StudentCourse existing = mock(StudentCourse.class);
-		when(existing.getCatalogId()).thenReturn(null);
-		when(existing.getCustomName()).thenReturn("AI 기초");
-		when(studentCourseRepository.findByStudentIdAndGradeYearAndTerm(DemoStudent.ID, 1, 2)).thenReturn(List.of(existing));
+		when(catalogService.resolveCourseName(existing)).thenReturn("AI 기초");
+		when(studentCourseRepository.findByStudentIdAndGradeYearAndTermOrderByIdAsc(DemoStudent.ID, 1, 2)).thenReturn(List.of(existing));
 
 		ValidationException exception = assertThrows(
 			ValidationException.class, () -> service.register(directRequest("ai 기초", "CAREER", 2)));

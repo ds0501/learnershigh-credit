@@ -2,9 +2,9 @@
 최종 갱신: 2026-10-28
 
 ## 현재 상태
-- 된 것: mock 데이터로 학점 현황, 평가 점수 입력·삭제, 신규 과목 등록, 이수 상태 변경·과목 삭제를 시연할 수 있다. API 명세 문서(docs/api-contract.md) 완료. DB 테이블 V1~V5(표준 과목 291개, 졸업/이수 기준값, 데모 학생 과목 20개·평가 44개, 데모 학생 id="0") 모두 적용 완료. 백엔드: 공통 오류 응답(ApiException 계층+GlobalExceptionHandler), GET /catalog(검색), POST /courses(등록) 실제로 동작 — WORKLOG 2026-10-28 "공통 처리와 과목 검색·등록 API 구현"
-- 안 된 것: 조회 API(summary·courses·required-courses·course 상세), 과목 변경 API(상태 변경·삭제), 평가 API, 계산 서비스(성취율·위험 단계). 프론트는 아직 mock으로만 동작(VITE_USE_MOCK=false 연동 전)
-- 다음: 계산 서비스 → 조회 API (PROGRESS.md "다음 할 일" 2번부터)
+- 된 것: 학점 현황 요약(SummaryCard), 학기별 수강 과목 표, 남은 필수 이수 과목 패널이 이제 mock이 아니라 실제 백엔드 API를 쓴다. API 명세 문서(docs/api-contract.md) 완료. DB 테이블 V1~V5(표준 과목 291개, 졸업/이수 기준값, 데모 학생 과목 20개·평가 44개, 데모 학생 id="0") 모두 적용 완료. 백엔드: 공통 오류 응답(ApiException 계층+GlobalExceptionHandler), 계산 서비스(CreditCalculationService), GET summary·courses·required-courses·catalog(검색), POST courses(등록) 실제로 동작 — WORKLOG 2026-10-28 "GET /courses, GET /required-courses 구현...", "계산 서비스와 GET /summary 구현...", "공통 처리와 과목 검색·등록 API 구현"
+- 안 된 것: GET courses/{courseId}(과목 상세), 과목 변경 API(이수 상태 변경·삭제), 평가 API(추가·수정·삭제)는 여전히 mock. **그래서 화면의 과목 표에는 실제 DB 과목이 보이지만, 그 과목을 눌러 점수를 입력/상태 변경/삭제하려 하면 mock 저장소에 그 id가 없어 오류가 난다** — 평가 점수 입력·삭제, 이수 상태 변경, 과목 삭제는 아직 mock 과목(원래 시연용으로 들어있던 20개)에서만 정상 동작함
+- 다음: GET courses/{courseId} + 과목 변경 API + 평가 API를 실제 백엔드로 구현 (위 "안 된 것"의 간극을 없애는 것)
 
 ## 완료
 각 항목의 실행 확인 상세는 docs/WORKLOG.md의 해당 날짜 항목에 있다.
@@ -25,17 +25,18 @@
 - [x] 표준 과목 목록(credit_course_catalog) 실데이터 291개 시딩 — WORKLOG 2026-10-28 "표준 과목 목록 실데이터 시딩"
 - [x] 졸업/이수 기준값 + 데모 학생 과목 20개·평가 44개 시딩(V4) — WORKLOG 2026-10-28 "졸업/이수 기준값과 데모 학생 과목·평가 시딩 (V4)"
 - [x] 공통 오류 응답/성공 코드 + GET catalog 검색 + POST courses 등록 — WORKLOG 2026-10-28 "공통 처리와 과목 검색·등록 API 구현"
+- [x] 계산 서비스(성취율·출석률·위험단계·필요평균) + GET summary + 첫 화면 요약 카드 실제 API 연결 — WORKLOG 2026-10-28 "계산 서비스와 GET /summary 구현, 첫 화면 요약 카드 실제 API 연결"
+- [x] GET courses?gradeYear=&term=, GET required-courses + 과목 표·필수 과목 패널 실제 API 연결 — WORKLOG 2026-10-28 "GET /courses, GET /required-courses 구현, 과목 표·필수 과목 패널 실제 API 연결"
 
 ## 지금 하는 것
-- 계산 서비스(성취율·출석률·위험 단계) 설계 시작
+- GET courses/{courseId}(과목 상세) 설계 시작
 
 ## 다음 할 일 (현재 기준)
 백엔드 구현 순서. API 모양과 규칙은 docs/api-contract.md가 기준이다(예시 JSON은 mock 실제 응답이고 contract.test.ts로 확인됨).
-1. 계산 서비스: 성취율, 출석률, 위험 단계 7단계, 필요 평균(api-contract.md 5장). PRD 6장 테스트 케이스 7개를 백엔드 단위 테스트로 옮긴다(frontend/src/modules/credit/domain/completion.test.ts 참고). credit_assessment, credit_completion_rule 엔티티·리포지토리가 이때 처음 필요함
-2. 조회 API: GET summary, GET courses?gradeYear=&term=, GET required-courses, GET courses/{courseId} (GET catalog은 이미 됨)
-3. 과목 변경 API: PATCH courses/{courseId}(이수 상태 변경), DELETE courses/{courseId}(평가도 함께 삭제) (POST courses는 이미 됨)
-4. 평가 API: POST courses/{courseId}/assessments, PUT·DELETE courses/{courseId}/assessments/{assessmentId}(그 과목의 평가가 아니면 404)
-5. 연결 확인: VITE_USE_MOCK=false로 프론트를 띄워 화면 확인, api-contract.md 예시와 실제 응답 비교(단, api-contract.md의 catalogId 예시는 frontend mock 기준이라 실제 DB 값과 다를 수 있음 — "미정" 참고)
+1. GET courses/{courseId}(과목 상세, 평가 목록 포함) — CourseItemAssembler·CreditCalculationService를 재사용. 이게 없어서 지금 화면에서 실제 DB 과목을 눌러 점수 입력 패널을 열면 mock에 없는 과목이라 오류가 남(위 "안 된 것" 참고)
+2. 과목 변경 API: PATCH courses/{courseId}(이수 상태 변경), DELETE courses/{courseId}(평가도 함께 삭제) (POST courses는 이미 됨)
+3. 평가 API: POST courses/{courseId}/assessments, PUT·DELETE courses/{courseId}/assessments/{assessmentId}(그 과목의 평가가 아니면 404)
+4. 연결 확인: VITE_USE_MOCK=false로 프론트를 띄워 화면 전체 확인, api-contract.md 예시와 실제 응답 비교(단, api-contract.md의 catalogId 예시는 frontend mock 기준이라 실제 DB 값과 다를 수 있음 — "미정" 참고). summary·courses·required-courses는 이미 forceReal로 항상 실제 API를 쓰므로 VITE_USE_MOCK 값과 무관하게 동작함을 재확인
 
 ## 막힌 것
 - 없음
@@ -51,7 +52,6 @@
 - api-contract.md·contractScenario.ts의 catalogId 예시(예: "확률과 통계"=17)는 frontend mock(catalog.ts, 30개 demo 순서) 기준이고 실제 DB 순서(확률과 통계=18)와 다름. 데모 학생 과목을 실제 DB에 넣을 때는 이름으로 다시 조회해서 ID를 써야 함
 - 이수 완료 과목 응답의 riskLevel·requiredAverage: 지금 API(mock)는 이수 상태와 관계없이 계산값을 돌려주고 화면이 수강 중 과목에만 보여 줌. API에서 뺄지는 정하지 않음
 - 로그인 도입 후 다른 학생의 과목·평가 ID로 요청했을 때의 응답(404 또는 403)
-- 성취율 소수 오차 처리 방식(비교할 때 허용 오차를 둘지, 소수 둘째 자리까지 반올림할지). 백엔드 구현 전에 정한다
 - 배포 시 프론트 서빙 방식 (새로고침 시 index.html로 돌려주는 설정은 개발 서버에서만 확인함)
 
 ## 실행 방법
