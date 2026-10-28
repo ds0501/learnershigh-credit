@@ -83,7 +83,7 @@ export function AssessmentForm({ course, editing, onSaved, onCancelEdit }: Asses
 
     setSaving(true);
     try {
-      if (editing) await updateAssessment(editing.id, input);
+      if (editing) await updateAssessment(course.id, editing.id, input);
       else await addAssessment(course.id, input);
       onSaved();
     } catch (error) {

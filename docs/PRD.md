@@ -246,7 +246,7 @@ effective_year, total_credits(192), subject_credits(174), creative_credits(18)
 | PATCH | /api/student/credit/courses/{courseId} | 과목 이수 상태 변경 (본문 { "status": "IN_PROGRESS" 또는 "COMPLETED" }. 성공 시 바뀐 과목 하나(GET /courses의 과목과 같은 모양), 상태 값이 틀리면 400, 없는 과목은 404) |
 | DELETE | /api/student/credit/courses/{courseId} | 과목 삭제, 그 과목의 평가도 함께 삭제 (성공 시 204, 본문 없음. 없는 과목은 404) |
 | POST | /api/student/credit/courses/{courseId}/assessments | 평가 점수 입력 |
-| PUT | /api/student/credit/assessments/{assessmentId} | 평가 점수 수정 |
+| PUT | /api/student/credit/courses/{courseId}/assessments/{assessmentId} | 평가 점수 수정 (그 과목의 평가가 아니면 404) |
 | DELETE | /api/student/credit/courses/{courseId}/assessments/{assessmentId} | 평가 삭제 (성공 시 204, 본문 없음. 그 과목의 평가가 아니면 404) |
 
 ### 응답 예시: GET /summary

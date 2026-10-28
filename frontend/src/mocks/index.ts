@@ -12,7 +12,7 @@ export interface MockRequest {
 export type MockHandler = (request: MockRequest) => unknown;
 
 // mock 모드에서 API별로 돌려줄 응답. 키는 "메서드 /api 뒤의 경로"이고 :이름은 경로 변수다.
-// 예: 'GET /student/credit/summary', 'PUT /student/credit/assessments/:assessmentId'
+// 예: 'GET /student/credit/summary', 'PUT /student/credit/courses/:courseId/assessments/:assessmentId'
 export const mockHandlers: Record<string, MockHandler> = {
   ...creditMockHandlers,
 };

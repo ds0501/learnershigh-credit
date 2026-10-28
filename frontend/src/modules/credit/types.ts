@@ -62,7 +62,7 @@ export interface Assessment {
   taskId: string | null;
 }
 
-// POST /courses/{courseId}/assessments, PUT /assessments/{assessmentId} 요청 본문
+// POST /courses/{courseId}/assessments, PUT /courses/{courseId}/assessments/{assessmentId} 요청 본문
 export type AssessmentInput = Omit<Assessment, 'id' | 'taskId'>;
 
 // GET /api/student/credit/catalog?query= 의 항목 (표준 과목 목록)

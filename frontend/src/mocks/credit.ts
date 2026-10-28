@@ -134,10 +134,11 @@ function addAssessment(courseId: string, body: unknown) {
   return toAssessment(insertAssessment(course.id, checkInput(course, body)));
 }
 
-function updateAssessment(assessmentId: string, body: unknown) {
+// 그 과목의 평가가 아니면 404 (평가 삭제와 같음)
+function updateAssessment(courseId: string, assessmentId: string, body: unknown) {
+  const course = requireCourse(courseId);
   const existing = findAssessment(assessmentId);
-  if (!existing) throw new ApiError(404, '평가를 찾을 수 없습니다.');
-  const course = requireCourse(existing.courseId);
+  if (!existing || existing.courseId !== course.id) throw new ApiError(404, '평가를 찾을 수 없습니다.');
   return toAssessment(replaceAssessment(assessmentId, checkInput(course, body, assessmentId))!);
 }
 
@@ -236,7 +237,8 @@ export const creditMockHandlers: Record<string, MockHandler> = {
   'DELETE /student/credit/courses/:courseId': ({ pathParams }) => deleteCourse(pathParams.courseId),
   'GET /student/credit/required-courses': () => requiredCourses(),
   'POST /student/credit/courses/:courseId/assessments': ({ pathParams, body }) => addAssessment(pathParams.courseId, body),
-  'PUT /student/credit/assessments/:assessmentId': ({ pathParams, body }) => updateAssessment(pathParams.assessmentId, body),
+  'PUT /student/credit/courses/:courseId/assessments/:assessmentId': ({ pathParams, body }) =>
+    updateAssessment(pathParams.courseId, pathParams.assessmentId, body),
   'DELETE /student/credit/courses/:courseId/assessments/:assessmentId': ({ pathParams }) =>
     deleteAssessment(pathParams.courseId, pathParams.assessmentId),
 };

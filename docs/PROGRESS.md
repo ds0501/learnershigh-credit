@@ -60,6 +60,19 @@
 - 막힌 점과 해결:
 - 다음 할 일:
 
+### 2026-10-28 — 평가 수정 경로를 과목 아래로 통일
+- 한 일: 평가 수정 API를 PUT /student/credit/assessments/{assessmentId}에서 PUT /student/credit/courses/{courseId}/assessments/{assessmentId}로 바꿈(평가 추가·삭제와 같은 모양). 그 과목의 평가가 아니면 404 "평가를 찾을 수 없습니다.", 없는 과목이면 404 "과목을 찾을 수 없습니다.". mock 핸들러, api.ts의 updateAssessment(courseId, assessmentId, input), 점수 입력 폼, PRD 8장 API 표를 고침
+- 바뀐 파일: frontend/src/mocks/credit.ts, frontend/src/mocks/index.ts(주석 예시), frontend/src/mocks/assessmentUpdate.test.ts(신규), frontend/src/mocks/courseStatus.test.ts, frontend/src/modules/credit/api.ts, frontend/src/modules/credit/types.ts(주석), frontend/src/modules/credit/components/AssessmentForm.tsx, docs/PRD.md(8장 표), docs/PROGRESS.md
+- 확인 방법과 결과:
+  1) npm test → 6개 파일, 66개 모두 통과. 새 테스트: 통합과학2 실험 보고서 50 → 100점 수정 시 35% → 55% 정상 / 다른 과목 경로로 수정하면 404이고 값이 바뀌지 않음 / 없는 과목 404 / 득점 > 만점 400. 과목 삭제 테스트는 옛 PUT 경로로 404를 보던 것을 "저장소에서 그 과목의 평가가 지워졌는지" 직접 보도록 바꿈
+  2) npm run build 통과, npm run lint 경고 0개
+  3) headless Edge(CDP) 12개 항목 모두 통과: 통합과학2 패널에서 실험 보고서 "수정" → 폼 "평가 수정: 실험 보고서"(득점 50) → 100으로 저장 → 패널 "현재 성취율 55% 수강 중", 목록 "100 / 100", 폼 "평가 추가"로, 표 "통합과학2 공통 4 55% 수강 중", 배너 "이수 위험 과목 0개 · 주의 1개". 페이지 안에서 화면이 쓰는 api 모듈을 불러 공통영어2 경로로 통합과학2 평가 수정 → "404 평가를 찾을 수 없습니다.", 값은 100점 그대로(방금 화면에서 저장한 100점이 보여 같은 mock 저장소임을 확인). 새로고침 → 35% 이수 위험
+  4) 같은 서버에서 이전 확인 스크립트 세 개도 다시 돌려 모두 통과: 점수 입력·평가 삭제 45개, 과목 등록 39개, 과목 상태 변경·삭제 32개
+  확인 후 개발 서버 종료(5173 포트 비어 있음). 확인 못 함: 실제 API
+- 결정과 이유: 백엔드 구현 전에 평가 API 경로를 모두 /courses/{courseId}/assessments 아래로 통일(사용자 결정). 수정도 삭제처럼 과목과 평가가 맞는지 확인함
+- 막힌 점과 해결: 없음
+- 다음 할 일: API 명세 문서(docs/api-contract.md), DB 테이블 V1과 시연용 데이터 V2, 백엔드 API
+
 ### 2026-10-28 — 과목 상태 변경과 삭제(mock) 추가
 - 한 일:
   1) mock 저장소에 updateCourseStatus, removeCourse(그 과목의 평가도 함께 삭제) 추가. mock API PATCH /student/credit/courses/{courseId}(본문 { status }, 성공 시 바뀐 과목 하나, 상태 값이 틀리면 400 { message, fieldErrors: { status } }), DELETE /student/credit/courses/{courseId}(성공 시 본문 없음 204) 추가. 없는 과목은 둘 다 404. 클라이언트에 PATCH 메서드 추가, api.ts에 changeCourseStatus, deleteCourse 추가

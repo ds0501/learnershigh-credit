@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { CourseDetail, CourseItem, CreditSummary, RequiredCourses, SemesterCourses } from '../modules/credit/types';
 import { creditMockHandlers } from './credit';
+import { findAssessment } from './creditStore';
 
 // 이 파일은 mock 저장소의 과목 상태를 바꾸고 과목을 지운다. 테스트 순서대로 상태가 쌓인다
 const call = <T>(key: string, request: Partial<Parameters<(typeof creditMockHandlers)[string]>[0]> = {}) =>
@@ -104,15 +105,16 @@ describe('과목 삭제 (DELETE /courses/{courseId})', () => {
 
   it('과목을 삭제하면 그 과목의 평가도 지워지고 학점·필수 과목·배너가 다시 계산된다', () => {
     const science = courseOf(1, 2, '통합과학2')!;
-    const assessmentId = call<CourseDetail>('GET /student/credit/courses/:courseId', { pathParams: { courseId: science.id } })
-      .assessments[0].id;
+    const assessmentIds = call<CourseDetail>('GET /student/credit/courses/:courseId', { pathParams: { courseId: science.id } })
+      .assessments.map((assessment) => assessment.id);
+    expect(assessmentIds.length).toBeGreaterThan(0);
 
     deleteCourse(science.id);
     expect(courseOf(1, 2, '통합과학2')).toBeUndefined();
     expect(summary()).toMatchObject({ inProgressCredits: 28, remainingCredits: 132, alert: { riskCount: 0, cautionCount: 1 } });
     expect(required().remainingCount).toBe(6);
-    // 남은 평가가 없어 수정할 수 없다
-    expect(errorOf(() => call('PUT /student/credit/assessments/:assessmentId', { pathParams: { assessmentId }, body: {} })).status).toBe(404);
+    // 그 과목의 평가도 저장소에서 지워졌다
+    expect(assessmentIds.every((id) => findAssessment(id) === undefined)).toBe(true);
   });
 
   it('이수 완료 과목 삭제 → 이수 완료·교과 학점이 줄어든다', () => {

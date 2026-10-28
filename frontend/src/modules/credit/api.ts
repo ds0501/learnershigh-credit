@@ -58,6 +58,10 @@ export function deleteAssessment(courseId: string, assessmentId: string) {
   );
 }
 
-export function updateAssessment(assessmentId: string, input: AssessmentInput) {
-  return apiRequest<Assessment>('PUT', `${BASE}/assessments/${encodeURIComponent(assessmentId)}`, { body: input });
+export function updateAssessment(courseId: string, assessmentId: string, input: AssessmentInput) {
+  return apiRequest<Assessment>(
+    'PUT',
+    `${BASE}/courses/${encodeURIComponent(courseId)}/assessments/${encodeURIComponent(assessmentId)}`,
+    { body: input },
+  );
 }
