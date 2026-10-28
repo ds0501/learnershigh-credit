@@ -8,6 +8,26 @@
 - 막힌 점:
 - 다음 할 일:
 
+### 2026-10-28 — 공통 처리와 과목 검색·등록 API 구현
+- 한 일:
+  1) 공통 처리: com.learnershigh.common.DemoStudent(ID="0", 로그인 없어 전 모듈 공통으로 씀). com.learnershigh.common.exception에 ApiException(abstract)/ValidationException(400)/NotFoundException(404, fieldErrors 항상 빈 맵)/ErrorResponse(record)/GlobalExceptionHandler(@RestControllerAdvice)로 오류 응답을 { message, fieldErrors } 모양으로 통일. 성공 코드는 컨트롤러 메서드의 @ResponseStatus·리턴 타입으로 표현(조회 200 기본값, 등록 201)
+  2) 과목 등록보다 먼저 생긴 결정: 데모 학생 식별자를 V4에서 넣은 'demo-student'에서 '0'으로 바꿈. V4는 이미 Flyway로 적용된 파일이라 고치지 않고 database/migrations/V5__update_demo_student_id.sql(UPDATE문)로 반영
+  3) GET /api/student/credit/catalog?query= (api-contract.md 4.4): CourseCatalogRepository.findAllByOrderByIdAsc()로 291개를 전부 가져와 이름·질의어 양쪽의 공백을 지우고 contains로 맞춰 최대 10개 반환(공백 무시 부분일치, mocks/catalog.ts의 searchCatalog와 같은 방식). 291개 규모라 전체 조회 후 Java에서 필터링해도 문제없다고 보고 복잡한 SQL(REPLACE 등) 없이 구현
+  4) POST /api/student/credit/courses (api-contract.md 4.5): frontend domain/courseRegistration.ts의 validateCourseDraft + mocks/credit.ts의 registerCourse 로직을 CourseRegistrationService로 그대로 포팅. catalogId 있으면 카탈로그에서 이름·유형을 가져오고(요청의 courseType은 무시), 없으면 customName·courseType(목록형 COMMON/GENERAL/CAREER/FUSION/CREATIVE 5개만 허용, SPECIALIZED는 카탈로그 선택으로만 들어옴)을 직접 검증. 같은 학년·학기 중복 이름 체크(공백·대소문자 무시)는 그 학기의 기존 과목을 전부 조회해 이름을 역으로 구해서 비교. 창체는 반영비율 0/0·gradeDisplay null로 강제 저장. 새로 등록한 과목은 평가가 없어 achievementRate=null, riskLevel=NO_DATA(창체는 NORMAL), requiredAverage는 필드 자체를 뺌(CourseItemResponse.getRequiredAverage()에 @JsonInclude(NON_NULL))
+  5) 엔티티(CourseCatalog, StudentCourse)·리포지토리·DTO(CatalogItemResponse, CourseRegistrationRequest, CourseItemResponse)·컨트롤러(CreditCourseController) 추가. CourseType enum에 SPECIALIZED 포함(6개), CourseStatus·GradeDisplay enum 추가
+- 바뀐 파일: backend/src/main/java/com/learnershigh/common/DemoStudent.java(신규), common/exception/{ApiException,ValidationException,NotFoundException,ErrorResponse,GlobalExceptionHandler}.java(신규), credit/entity/{CourseCatalog,StudentCourse,CourseType,CourseStatus,GradeDisplay}.java(신규), credit/repository/{CourseCatalogRepository,StudentCourseRepository}.java(신규), credit/dto/{CatalogItemResponse,CourseRegistrationRequest,CourseItemResponse,RiskLevel}.java(신규), credit/service/{CourseCatalogService,CourseRegistrationService}.java(신규), credit/controller/CreditCourseController.java(신규), backend/src/test/java/com/learnershigh/credit/service/CourseRegistrationServiceTest.java(신규), database/migrations/V5__update_demo_student_id.sql(신규)
+- 확인 결과(확인하지 못한 것 포함):
+  - 단위 테스트 14개(CourseRegistrationServiceTest, Mockito로 리포지토리 모킹, DB 없이 실행): 목록 과목 등록, 창체 반영비율 0/0 강제, 직접 입력 등록, catalogId 없음, 과목명 빈값, 중복 이름, 유형 없음, 학점<1, 반영비율 합≠100, 상태·표기방식·학기 오류, 복합 오류 — 전부 통과. 처음엔 3개가 UnfinishedStubbingException으로 실패했는데, when(...).thenReturn(Optional.of(helper())) 처럼 thenReturn 인자 안에서 helper가 또 when()을 부르는 Mockito 중첩 스터빙 문제였음 — helper 호출을 별도 줄로 빼서 해결
+  - `./gradlew build` 전체 통과(HealthControllerTest 포함)
+  - 실제 서버(Java 21 + MySQL)로 V5까지 Flyway 적용 확인 후 curl로 직접 호출: catalog 검색("공통국어"→2건, 공백 무시 "확률과통계"→확률과 통계 1건), 과목 등록 4가지(목록 과목 성공 201·requiredAverage 필드 없음 확인, 창체 성공 201·riskLevel NORMAL, 검증 오류 4개 동시 발생 400, 중복 이름 400, 없는 catalogId 400, 직접 입력 성공 201) 전부 api-contract.md와 같은 모양으로 응답. DB에 student_id='0'으로 저장됨도 확인. 검증용으로 만든 행(id 21~23)은 확인 후 지움
+  - 확인 못 함: GET /required-courses, GET /summary 등 나머지 API는 이번에 만들지 않아서 프론트(VITE_USE_MOCK=false) 전체 연동은 아직 확인 못 함(의도적 — 이번엔 등록 기능만 범위)
+- 결정과 이유:
+  - 사용자가 지정한 설계(ApiException 2종 + @ExceptionHandler, 성공 코드는 리턴 타입/어노테이션으로 표현, 데모 학생 id="0")를 그대로 따름
+  - catalog 검색은 Spring Data 파생 쿼리로 공백 무시 LIKE를 표현하기 어려워서(DB마다 REPLACE 함수가 다르고 복잡해짐), 291개 전부 가져와 Java 스트림으로 필터링함 — 이 규모에서는 성능 문제가 없다고 보고 단순한 쪽을 선택
+  - credit_assessment·credit_completion_rule·credit_graduation_rule 엔티티는 이번 범위(등록 기능)에 안 써서 만들지 않음 — 다음 기능(조회 API, 계산 서비스)에서 필요할 때 추가
+- 막힌 점: 없음
+- 다음 할 일: PROGRESS.md "다음 할 일"의 나머지 — 계산 서비스, 조회 API(GET summary 등), 나머지 과목·평가 변경 API
+
 ### 2026-10-28 — 졸업/이수 기준값과 데모 학생 과목·평가 시딩 (V4)
 - 한 일: PROGRESS.md "다음 할 일" 1번(남은 시연용 초기 데이터)을 database/migrations/V4__seed_demo_student_data.sql로 작성. credit_graduation_rule 1행(2025, 192/174/18), credit_completion_rule 6행(course_type별, effective_year 2026, COMMON만 min_achievement 40·caution_below_rate 50, 나머지는 NULL), credit_student_course 20행(1학년 1학기 10개 COMPLETED + 2학기 10개 IN_PROGRESS), credit_assessment 44행. 전부 frontend/src/mocks/creditStore.ts의 시연 데이터와 같은 값
 - 바뀐 파일: database/migrations/V4__seed_demo_student_data.sql(신규), docs/PROGRESS.md(완료, 다음 할 일)

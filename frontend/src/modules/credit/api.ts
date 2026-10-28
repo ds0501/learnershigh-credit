@@ -26,12 +26,13 @@ export function getRequiredCourses() {
   return apiGet<RequiredCourses>(`${BASE}/required-courses`);
 }
 
+// 과목 등록 모달(검색+등록)만 실제 백엔드로 보낸다. 나머지 API는 아직 없어 mock을 그대로 쓴다
 export function searchCatalog(query: string) {
-  return apiGet<CatalogItem[]>(`${BASE}/catalog`, { query });
+  return apiGet<CatalogItem[]>(`${BASE}/catalog`, { query }, true);
 }
 
 export function registerCourse(input: CourseRegistrationInput) {
-  return apiRequest<CourseItem>('POST', `${BASE}/courses`, { body: input });
+  return apiRequest<CourseItem>('POST', `${BASE}/courses`, { body: input, forceReal: true });
 }
 
 export function changeCourseStatus(courseId: string, status: CourseStatus) {
