@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { useAsync } from '../../../api/useAsync';
-import { deleteAssessment, getCourseDetail } from '../api';
-import { ASSESSMENT_KIND_LABEL, badgeOf, COURSE_TYPE_LABEL, formatRate, requiredAverageMessage } from '../labels';
+import { changeCourseStatus, deleteAssessment, deleteCourse, getCourseDetail } from '../api';
+import { ASSESSMENT_KIND_LABEL, badgeOf, COURSE_STATUS_LABEL, COURSE_TYPE_LABEL, formatRate, requiredAverageMessage } from '../labels';
 import type { CourseDetail } from '../types';
 import { AssessmentForm } from './AssessmentForm';
 import { Disclaimer } from './Disclaimer';
@@ -13,13 +13,99 @@ import styles from './AssessmentDrawer.module.css';
 interface AssessmentDrawerProps {
   courseId: string;
   onClose: () => void;
-  // 평가를 저장한 뒤 학점 현황 화면을 다시 계산하게 알린다
+  // 평가 저장·삭제, 이수 상태 변경 뒤 학점 현황 화면을 다시 계산하게 알린다
   onSaved: () => void;
+  // 과목을 삭제한 뒤 (패널을 닫고 학점 현황을 다시 계산)
+  onCourseDeleted: () => void;
+}
+
+interface CourseActionsProps {
+  course: CourseDetail;
+  onChanged: () => void;
+  onDeleted: () => void;
+}
+
+// 과목 이름 아래의 이수 상태 변경과 과목 삭제 (이수 위험·주의 과목도 제한 없이 바꿀 수 있다)
+function CourseActions({ course, onChanged, onDeleted }: CourseActionsProps) {
+  const [busy, setBusy] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const completed = course.status === 'COMPLETED';
+
+  const run = async (action: () => Promise<unknown>, done: () => void, failMessage: string) => {
+    setBusy(true);
+    setError(null);
+    try {
+      await action();
+      done();
+    } catch {
+      setError(failMessage);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const toggleStatus = () =>
+    run(
+      () => changeCourseStatus(course.id, completed ? 'IN_PROGRESS' : 'COMPLETED'),
+      onChanged,
+      '이수 상태를 바꾸지 못했습니다. 잠시 후 다시 시도하세요.',
+    );
+
+  const remove = () => run(() => deleteCourse(course.id), onDeleted, '과목을 삭제하지 못했습니다. 잠시 후 다시 시도하세요.');
+
+  return (
+    <div className={styles.courseActions}>
+      {confirming ? (
+        // 브라우저 confirm 창 대신 버튼 자리를 확인 문구로 바꾼다
+        <div className={styles.courseConfirm}>
+          <span>이 과목을 삭제할까요? 입력한 평가도 함께 삭제됩니다.</span>
+          <span className={styles.rowActions}>
+            <button type="button" className={styles.dangerButton} data-action="confirm-delete-course" disabled={busy} onClick={remove}>
+              {busy ? '삭제 중...' : '삭제'}
+            </button>
+            <button
+              type="button"
+              className={styles.linkButton}
+              data-action="cancel-delete-course"
+              disabled={busy}
+              onClick={() => setConfirming(false)}
+            >
+              취소
+            </button>
+          </span>
+        </div>
+      ) : (
+        <div className={styles.rowActions}>
+          <button type="button" className={styles.outlineButton} data-action="toggle-status" disabled={busy} onClick={toggleStatus}>
+            {completed ? '수강 중으로 되돌리기' : '이수 완료로 변경'}
+          </button>
+          <button
+            type="button"
+            className={`${styles.outlineButton} ${styles.outlineDanger}`}
+            data-action="delete-course"
+            disabled={busy}
+            onClick={() => {
+              setError(null);
+              setConfirming(true);
+            }}
+          >
+            과목 삭제
+          </button>
+        </div>
+      )}
+      {error && (
+        <p className={styles.formError} role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  );
 }
 
 function CourseStatus({ course }: { course: CourseDetail }) {
   const badge = badgeOf(course.status, course.riskLevel);
-  const warned = course.riskLevel === 'RISK' || course.riskLevel === 'CAUTION';
+  const warned = badge === 'risk' || badge === 'caution';
   return (
     <div className={`${styles.status} ${badge === 'risk' ? styles.statusRisk : ''}`}>
       <div className={styles.statusRow}>
@@ -29,7 +115,8 @@ function CourseStatus({ course }: { course: CourseDetail }) {
         </strong>
         <StatusBadge kind={badge} />
       </div>
-      {course.riskLevel === 'RISK' && course.requiredAverage !== undefined && (
+      {/* 필요 평균 안내는 아직 수강 중인 과목에만 (이수 완료 과목은 배지가 "이수 완료") */}
+      {course.status === 'IN_PROGRESS' && course.riskLevel === 'RISK' && course.requiredAverage !== undefined && (
         <p className={styles.guide}>{requiredAverageMessage(course.requiredAverage)}</p>
       )}
       {course.achievementRate === null && <p className={styles.hint}>입력된 평가가 없어 성취율을 계산하지 않습니다.</p>}
@@ -157,7 +244,7 @@ function AssessmentList({
 }
 
 // 과목의 평가 목록과 평가 입력 폼을 보여주는 오른쪽 패널
-export function AssessmentDrawer({ courseId, onClose, onSaved }: AssessmentDrawerProps) {
+export function AssessmentDrawer({ courseId, onClose, onSaved, onCourseDeleted }: AssessmentDrawerProps) {
   const detail = useAsync(`course-${courseId}`, () => getCourseDetail(courseId));
   const [editingId, setEditingId] = useState<string | undefined>();
   const [confirmingId, setConfirmingId] = useState<string | undefined>();
@@ -178,6 +265,12 @@ export function AssessmentDrawer({ courseId, onClose, onSaved }: AssessmentDrawe
 
   const course = detail.state.status === 'success' ? detail.state.data : null;
   const editing = course?.assessments.find((assessment) => assessment.id === editingId);
+  const creative = course?.courseType === 'CREATIVE';
+
+  const handleStatusChanged = () => {
+    detail.reload();
+    onSaved();
+  };
 
   const handleSaved = () => {
     setEditingId(undefined);
@@ -222,10 +315,11 @@ export function AssessmentDrawer({ courseId, onClose, onSaved }: AssessmentDrawe
             </h2>
             {course && (
               <p className={styles.meta}>
-                {COURSE_TYPE_LABEL[course.courseType]} · {course.credits}학점 · 지필 {course.writtenWeight}% / 수행{' '}
-                {course.performanceWeight}%
+                {COURSE_TYPE_LABEL[course.courseType]} · {course.credits}학점 · {COURSE_STATUS_LABEL[course.status]}
+                {!creative && ` · 지필 ${course.writtenWeight}% / 수행 ${course.performanceWeight}%`}
               </p>
             )}
+            {course && <CourseActions course={course} onChanged={handleStatusChanged} onDeleted={onCourseDeleted} />}
           </div>
           <button ref={closeRef} type="button" className={styles.close} onClick={onClose} aria-label="닫기">
             ×
@@ -234,7 +328,8 @@ export function AssessmentDrawer({ courseId, onClose, onSaved }: AssessmentDrawe
 
         {detail.state.status === 'loading' && <StateMessage kind="loading" />}
         {detail.state.status === 'error' && <StateMessage kind="error" onRetry={detail.reload} />}
-        {course && (
+        {/* 창체는 평가가 없어 상태 변경과 삭제만 보여 준다 */}
+        {course && !creative && (
           <div className={styles.content}>
             <CourseStatus course={course} />
 

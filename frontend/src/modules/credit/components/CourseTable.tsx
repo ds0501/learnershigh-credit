@@ -5,7 +5,7 @@ import styles from './CourseTable.module.css';
 
 interface CourseTableProps {
   data: SemesterCourses;
-  // 행을 누르면 그 과목의 평가 입력 패널을 연다
+  // 행을 누르면 그 과목의 패널(평가 입력, 이수 상태 변경, 과목 삭제)을 연다
   onSelect: (courseId: string) => void;
 }
 
@@ -32,27 +32,21 @@ export function CourseTable({ data, onSelect }: CourseTableProps) {
         <tbody>
           {data.courses.map((course) => {
             const badge = badgeOf(course.status, course.riskLevel);
-            // 창체는 평가가 없어 입력 패널을 열지 않는다
-            const selectable = course.courseType !== 'CREATIVE';
-            const rowClass = [badge === 'risk' ? styles.riskRow : '', selectable ? styles.selectable : ''].join(' ').trim();
+            // 모든 행(창체 포함)을 누르면 패널이 열린다. 창체 패널에는 상태 변경과 삭제만 있다
             return (
               <tr
                 key={course.id}
                 data-course-id={course.id}
-                className={rowClass || undefined}
-                tabIndex={selectable ? 0 : undefined}
-                aria-label={selectable ? `${course.name} 평가 입력 열기` : undefined}
-                onClick={selectable ? () => onSelect(course.id) : undefined}
-                onKeyDown={
-                  selectable
-                    ? (event) => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault();
-                          onSelect(course.id);
-                        }
-                      }
-                    : undefined
-                }
+                className={badge === 'risk' ? `${styles.riskRow} ${styles.selectable}` : styles.selectable}
+                tabIndex={0}
+                aria-label={`${course.name} 과목 관리 열기`}
+                onClick={() => onSelect(course.id)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    onSelect(course.id);
+                  }
+                }}
               >
                 <td className={styles.name}>{course.name}</td>
                 <td className={styles.muted}>{COURSE_TYPE_LABEL[course.courseType]}</td>

@@ -135,6 +135,21 @@ export function insertCourse(course: Omit<StoredCourse, 'id'>): StoredCourse {
   return created;
 }
 
+export function updateCourseStatus(courseId: string, status: CourseStatus): StoredCourse | undefined {
+  const course = findCourse(courseId);
+  if (course) course.status = status;
+  return course;
+}
+
+// 과목을 지우면 그 과목의 평가도 함께 지운다
+export function removeCourse(courseId: string): boolean {
+  const index = store.courses.findIndex((course) => course.id === courseId);
+  if (index < 0) return false;
+  store.courses.splice(index, 1);
+  store.assessments = store.assessments.filter((assessment) => assessment.courseId !== courseId);
+  return true;
+}
+
 export function insertAssessment(courseId: string, input: AssessmentInput): StoredAssessment {
   const assessment: StoredAssessment = { ...input, id: String(nextAssessmentId++), courseId, taskId: null };
   store.assessments.push(assessment);

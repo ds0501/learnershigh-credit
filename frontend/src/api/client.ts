@@ -12,7 +12,7 @@ const API_BASE = '/api';
 const MOCK_DELAY_MS = 300;
 
 export type QueryParams = MockParams;
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 interface RequestOptions {
   params?: QueryParams;

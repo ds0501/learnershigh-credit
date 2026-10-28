@@ -7,6 +7,7 @@ import { validateAssessment } from '../modules/credit/domain/validation';
 import type {
   AssessmentInput,
   CourseDetail,
+  CourseStatus,
   CourseItem,
   CourseRegistrationInput,
   CourseType,
@@ -24,7 +25,9 @@ import {
   insertCourse,
   listCourses,
   removeAssessment,
+  removeCourse,
   replaceAssessment,
+  updateCourseStatus,
   type StoredAssessment,
   type StoredCourse,
 } from './creditStore';
@@ -197,6 +200,23 @@ function registerCourse(body: unknown): CourseItem {
   return toCourseItem(created);
 }
 
+// 이수 상태 변경. 이수 위험·주의 과목도 제한 없이 바꿀 수 있다
+function changeCourseStatus(courseId: string, body: unknown): CourseItem {
+  requireCourse(courseId);
+  const status = (body as { status?: CourseStatus } | null)?.status;
+  if (status !== 'IN_PROGRESS' && status !== 'COMPLETED') {
+    throw new ApiError(400, '입력값을 확인하세요.', { status: '이수 상태를 선택하세요.' });
+  }
+  return toCourseItem(updateCourseStatus(courseId, status)!);
+}
+
+// 과목과 그 과목의 평가를 지운다. 응답 본문 없음(204, 평가 삭제와 같음)
+function deleteCourse(courseId: string) {
+  requireCourse(courseId);
+  removeCourse(courseId);
+  return null;
+}
+
 // 응답 본문 없음(204)
 function deleteAssessment(courseId: string, assessmentId: string) {
   const course = requireCourse(courseId);
@@ -212,6 +232,8 @@ export const creditMockHandlers: Record<string, MockHandler> = {
   'GET /student/credit/courses/:courseId': ({ pathParams }) => courseDetail(pathParams.courseId),
   'GET /student/credit/catalog': ({ params }) => searchCatalog(String(params.query ?? '')),
   'POST /student/credit/courses': ({ body }) => registerCourse(body),
+  'PATCH /student/credit/courses/:courseId': ({ pathParams, body }) => changeCourseStatus(pathParams.courseId, body),
+  'DELETE /student/credit/courses/:courseId': ({ pathParams }) => deleteCourse(pathParams.courseId),
   'GET /student/credit/required-courses': () => requiredCourses(),
   'POST /student/credit/courses/:courseId/assessments': ({ pathParams, body }) => addAssessment(pathParams.courseId, body),
   'PUT /student/credit/assessments/:assessmentId': ({ pathParams, body }) => updateAssessment(pathParams.assessmentId, body),

@@ -111,7 +111,7 @@ export function CreditPage() {
             ) : (
               <>
                 <CourseTable data={courses.state.data} onSelect={setSelectedCourseId} />
-                <p className={styles.hint}>과목을 누르면 평가 점수를 입력할 수 있습니다.</p>
+                <p className={styles.hint}>과목을 누르면 평가 점수 입력, 이수 상태 변경, 과목 삭제를 할 수 있습니다.</p>
                 {courses.state.data.courses.some((course) => course.riskLevel === 'RISK' || course.riskLevel === 'CAUTION') && (
                   <Disclaimer />
                 )}
@@ -123,7 +123,18 @@ export function CreditPage() {
       {registerOpen && (
         <CourseRegisterModal initialTermKey={selectedTerm.key} onClose={closeRegister} onRegistered={handleRegistered} />
       )}
-      {selectedCourseId && <AssessmentDrawer courseId={selectedCourseId} onClose={closeDrawer} onSaved={refreshAll} />}
+      {selectedCourseId && (
+        <AssessmentDrawer
+          courseId={selectedCourseId}
+          onClose={closeDrawer}
+          onSaved={refreshAll}
+          onCourseDeleted={() => {
+            // 과목을 지우면 패널을 닫고 요약, 배너, 필수 과목, 과목 표를 다시 계산한다
+            setSelectedCourseId(null);
+            refreshAll();
+          }}
+        />
+      )}
     </>
   );
 }

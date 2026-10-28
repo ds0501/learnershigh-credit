@@ -211,6 +211,56 @@
   cursor: wait;
 }
 
+/* 과목 이수 상태 변경, 과목 삭제 */
+.courseActions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.outlineButton {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-accent-dim);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-accent);
+  cursor: pointer;
+}
+
+.outlineButton:hover:not(:disabled) {
+  border-color: var(--color-accent);
+}
+
+.outlineButton:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.outlineDanger {
+  border-color: var(--color-risk-border);
+  color: var(--color-risk);
+}
+
+.outlineDanger:hover:not(:disabled) {
+  border-color: var(--color-risk);
+}
+
+.courseConfirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-risk-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-risk-bg);
+  font-size: var(--font-size-sm);
+}
+
 .visuallyHidden {
   position: absolute;
   width: 1px;

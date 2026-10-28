@@ -6,6 +6,7 @@ import type {
   CourseDetail,
   CourseItem,
   CourseRegistrationInput,
+  CourseStatus,
   CreditSummary,
   RequiredCourses,
   SemesterCourses,
@@ -31,6 +32,15 @@ export function searchCatalog(query: string) {
 
 export function registerCourse(input: CourseRegistrationInput) {
   return apiRequest<CourseItem>('POST', `${BASE}/courses`, { body: input });
+}
+
+export function changeCourseStatus(courseId: string, status: CourseStatus) {
+  return apiRequest<CourseItem>('PATCH', `${BASE}/courses/${encodeURIComponent(courseId)}`, { body: { status } });
+}
+
+// 성공하면 본문 없음(204)
+export function deleteCourse(courseId: string) {
+  return apiRequest<void>('DELETE', `${BASE}/courses/${encodeURIComponent(courseId)}`);
 }
 
 export function getCourseDetail(courseId: string) {
