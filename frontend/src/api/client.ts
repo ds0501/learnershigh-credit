@@ -17,10 +17,16 @@ export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 interface RequestOptions {
   params?: QueryParams;
   body?: unknown;
+  // true면 VITE_USE_MOCK과 관계없이 항상 실제 백엔드로 보낸다. 백엔드 API를 하나씩 붙이는 동안 임시로 쓴다
+  forceReal?: boolean;
 }
 
-export async function apiRequest<T>(method: HttpMethod, path: string, { params = {}, body }: RequestOptions = {}): Promise<T> {
-  if (USE_MOCK) {
+export async function apiRequest<T>(
+  method: HttpMethod,
+  path: string,
+  { params = {}, body, forceReal = false }: RequestOptions = {},
+): Promise<T> {
+  if (USE_MOCK && !forceReal) {
     const match = findMockHandler(method, path);
     if (!match) {
       throw new Error(`mock 데이터가 없습니다: ${method} ${path}`);
@@ -45,6 +51,6 @@ export async function apiRequest<T>(method: HttpMethod, path: string, { params =
   return (await response.json()) as T;
 }
 
-export function apiGet<T>(path: string, params: QueryParams = {}) {
-  return apiRequest<T>('GET', path, { params });
+export function apiGet<T>(path: string, params: QueryParams = {}, forceReal = false) {
+  return apiRequest<T>('GET', path, { params, forceReal });
 }

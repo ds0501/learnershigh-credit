@@ -2,9 +2,9 @@
 최종 갱신: 2026-10-28
 
 ## 현재 상태
-- 된 것: mock 데이터로 학점 현황, 평가 점수 입력·삭제, 신규 과목 등록, 이수 상태 변경·과목 삭제를 시연할 수 있다. API 명세 문서(docs/api-contract.md) 완료. 표준 과목 목록(catalog)에서 학점 제거(학교마다 편성이 달라 항상 학생이 직접 입력). DB 테이블 V1 작성 완료, MySQL에 직접 적용해 제약조건까지 확인 — WORKLOG 2026-10-28 "DB 테이블 V1 작성". credit_course_catalog에 한국교육과정평가원 과목 목록 291개(공식 290 + 창체 1) 시딩 완료(V2 course_type에 SPECIALIZED 추가, V3 시딩) — WORKLOG 2026-10-28 "표준 과목 목록 실데이터 시딩". 졸업/이수 기준값과 데모 학생 과목 20개·평가 44개 시딩 완료(V4) — WORKLOG 2026-10-28 "졸업/이수 기준값과 데모 학생 과목·평가 시딩 (V4)"
-- 안 된 것: 백엔드 API (프론트는 아직 mock으로만 동작, DB는 시드 데이터까지 준비됨)
-- 다음: 백엔드 API 구현 (PROGRESS.md "다음 할 일" 2번부터)
+- 된 것: mock 데이터로 학점 현황, 평가 점수 입력·삭제, 신규 과목 등록, 이수 상태 변경·과목 삭제를 시연할 수 있다. API 명세 문서(docs/api-contract.md) 완료. DB 테이블 V1~V5(표준 과목 291개, 졸업/이수 기준값, 데모 학생 과목 20개·평가 44개, 데모 학생 id="0") 모두 적용 완료. 백엔드: 공통 오류 응답(ApiException 계층+GlobalExceptionHandler), GET /catalog(검색), POST /courses(등록) 실제로 동작 — WORKLOG 2026-10-28 "공통 처리와 과목 검색·등록 API 구현"
+- 안 된 것: 조회 API(summary·courses·required-courses·course 상세), 과목 변경 API(상태 변경·삭제), 평가 API, 계산 서비스(성취율·위험 단계). 프론트는 아직 mock으로만 동작(VITE_USE_MOCK=false 연동 전)
+- 다음: 계산 서비스 → 조회 API (PROGRESS.md "다음 할 일" 2번부터)
 
 ## 완료
 각 항목의 실행 확인 상세는 docs/WORKLOG.md의 해당 날짜 항목에 있다.
@@ -24,18 +24,18 @@
 - [x] DB 테이블 V1 — WORKLOG 2026-10-28 "DB 테이블 V1 작성"
 - [x] 표준 과목 목록(credit_course_catalog) 실데이터 291개 시딩 — WORKLOG 2026-10-28 "표준 과목 목록 실데이터 시딩"
 - [x] 졸업/이수 기준값 + 데모 학생 과목 20개·평가 44개 시딩(V4) — WORKLOG 2026-10-28 "졸업/이수 기준값과 데모 학생 과목·평가 시딩 (V4)"
+- [x] 공통 오류 응답/성공 코드 + GET catalog 검색 + POST courses 등록 — WORKLOG 2026-10-28 "공통 처리와 과목 검색·등록 API 구현"
 
 ## 지금 하는 것
-- 백엔드 API 구현 시작: 공통 처리(데모 학생 고정, 오류 응답 형식, 성공 코드) 설계
+- 계산 서비스(성취율·출석률·위험 단계) 설계 시작
 
 ## 다음 할 일 (현재 기준)
 백엔드 구현 순서. API 모양과 규칙은 docs/api-contract.md가 기준이다(예시 JSON은 mock 실제 응답이고 contract.test.ts로 확인됨).
-1. 공통: 데모 학생 고정 처리(student_id = 'demo-student'), 오류 응답 형식(400 { message, fieldErrors }, 404 { message, fieldErrors: {} }), 성공 코드(200/201/204)
-2. 계산 서비스: 성취율, 출석률, 위험 단계 7단계, 필요 평균(api-contract.md 5장). PRD 6장 테스트 케이스 7개를 백엔드 단위 테스트로 옮긴다(frontend/src/modules/credit/domain/completion.test.ts 참고)
-3. 조회 API: GET summary, GET courses?gradeYear=&term=, GET required-courses, GET catalog?query=, GET courses/{courseId}
-4. 과목 변경 API: POST courses(검증 포함), PATCH courses/{courseId}(이수 상태 변경), DELETE courses/{courseId}(평가도 함께 삭제)
-5. 평가 API: POST courses/{courseId}/assessments, PUT·DELETE courses/{courseId}/assessments/{assessmentId}(그 과목의 평가가 아니면 404)
-6. 연결 확인: VITE_USE_MOCK=false로 프론트를 띄워 화면 확인, api-contract.md 예시와 실제 응답 비교(단, api-contract.md의 catalogId 예시는 frontend mock 기준이라 실제 DB 값과 다를 수 있음 — "미정" 참고)
+1. 계산 서비스: 성취율, 출석률, 위험 단계 7단계, 필요 평균(api-contract.md 5장). PRD 6장 테스트 케이스 7개를 백엔드 단위 테스트로 옮긴다(frontend/src/modules/credit/domain/completion.test.ts 참고). credit_assessment, credit_completion_rule 엔티티·리포지토리가 이때 처음 필요함
+2. 조회 API: GET summary, GET courses?gradeYear=&term=, GET required-courses, GET courses/{courseId} (GET catalog은 이미 됨)
+3. 과목 변경 API: PATCH courses/{courseId}(이수 상태 변경), DELETE courses/{courseId}(평가도 함께 삭제) (POST courses는 이미 됨)
+4. 평가 API: POST courses/{courseId}/assessments, PUT·DELETE courses/{courseId}/assessments/{assessmentId}(그 과목의 평가가 아니면 404)
+5. 연결 확인: VITE_USE_MOCK=false로 프론트를 띄워 화면 확인, api-contract.md 예시와 실제 응답 비교(단, api-contract.md의 catalogId 예시는 frontend mock 기준이라 실제 DB 값과 다를 수 있음 — "미정" 참고)
 
 ## 막힌 것
 - 없음
@@ -49,7 +49,6 @@
 - 전문교과(SPECIALIZED)는 지금 DB(credit_course_catalog)에만 있고 frontend CourseType·COURSE_TYPE_LABEL에는 없음. 실제 백엔드 연동(VITE_USE_MOCK=false) 전에 프론트도 맞춰야 함
 - 특성화고·산업수요맞춤형고 졸업 기준(교과 174학점 중 전문교과 80학점 이상 + 보통교과 64학점 이상)은 이번 범위에 넣지 않음 — credit_graduation_rule은 일반고 기준(192/174/18)만 다룸(PRD 12장)
 - api-contract.md·contractScenario.ts의 catalogId 예시(예: "확률과 통계"=17)는 frontend mock(catalog.ts, 30개 demo 순서) 기준이고 실제 DB 순서(확률과 통계=18)와 다름. 데모 학생 과목을 실제 DB에 넣을 때는 이름으로 다시 조회해서 ID를 써야 함
-- 생성 성공 상태 코드: mock에는 상태 코드가 없어 api-contract.md에 POST 201로 적음(클라이언트는 2xx를 모두 성공으로 처리해 200이어도 동작함). 확정 필요
 - 이수 완료 과목 응답의 riskLevel·requiredAverage: 지금 API(mock)는 이수 상태와 관계없이 계산값을 돌려주고 화면이 수강 중 과목에만 보여 줌. API에서 뺄지는 정하지 않음
 - 로그인 도입 후 다른 학생의 과목·평가 ID로 요청했을 때의 응답(404 또는 403)
 - 성취율 소수 오차 처리 방식(비교할 때 허용 오차를 둘지, 소수 둘째 자리까지 반올림할지). 백엔드 구현 전에 정한다
