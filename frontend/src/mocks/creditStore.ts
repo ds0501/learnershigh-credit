@@ -1,9 +1,12 @@
 // 고교학점제 mock 메모리 저장소. 과목과 평가 원본만 들고 있고 성취율·상태는 저장하지 않는다.
 // 새로고침하면 처음 상태(시연 데이터)로 돌아간다.
-import type { AssessmentInput, AssessmentKind, CourseStatus, CourseType } from '../modules/credit/types';
+import type { AssessmentInput, AssessmentKind, CourseStatus, CourseType, GradeDisplay } from '../modules/credit/types';
+import { CATALOG } from './catalog';
 
 export interface StoredCourse {
   id: string;
+  // 표준 과목 목록의 ID. 직접 입력한 과목이면 null
+  catalogId: string | null;
   name: string;
   courseType: CourseType;
   credits: number;
@@ -14,6 +17,8 @@ export interface StoredCourse {
   performanceWeight: number;
   absentCount: number;
   totalSessions: number | null;
+  // 창체는 null
+  gradeDisplay: GradeDisplay | null;
 }
 
 export interface StoredAssessment extends AssessmentInput {
@@ -81,6 +86,7 @@ function buildSeed() {
       const id = String(courses.length + 1);
       courses.push({
         id,
+        catalogId: CATALOG.find((item) => item.name === name)?.id ?? null,
         name,
         courseType,
         credits,
@@ -92,6 +98,8 @@ function buildSeed() {
         performanceWeight: courseType === 'CREATIVE' ? 0 : 100 - writtenWeight,
         absentCount: 0,
         totalSessions: null,
+        // 시연 데이터: 공통과목은 성취도 + 5등급, 체육·예술 일반선택은 A·B·C 3단계
+        gradeDisplay: courseType === 'CREATIVE' ? null : courseType === 'COMMON' ? 'ACHIEVEMENT_AND_RANK' : 'THREE_LEVEL',
       });
       for (const [kind, title, weightPercent, score, evaluatedOn] of seeds) {
         assessments.push({ id: String(nextAssessmentId++), courseId: id, kind, title, weightPercent, maxScore: 100, score, evaluatedOn, taskId: null });
@@ -120,6 +128,13 @@ export function assessmentsOf(courseId: string): StoredAssessment[] {
 }
 
 // 검증은 호출하는 쪽(mock API)에서 끝낸 뒤 부른다
+export function insertCourse(course: Omit<StoredCourse, 'id'>): StoredCourse {
+  const nextId = Math.max(0, ...store.courses.map((existing) => Number(existing.id))) + 1;
+  const created: StoredCourse = { ...course, id: String(nextId) };
+  store.courses.push(created);
+  return created;
+}
+
 export function insertAssessment(courseId: string, input: AssessmentInput): StoredAssessment {
   const assessment: StoredAssessment = { ...input, id: String(nextAssessmentId++), courseId, taskId: null };
   store.assessments.push(assessment);

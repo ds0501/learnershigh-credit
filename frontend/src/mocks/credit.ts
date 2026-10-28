@@ -1,14 +1,27 @@
 // 고교학점제 mock API. 응답은 메모리 저장소(creditStore)의 과목·평가에서 계산 모듈로 만든다.
 import { ApiError } from '../api/errors';
 import { evaluateCourse } from '../modules/credit/domain/completion';
+import { validateCourseDraft } from '../modules/credit/domain/courseRegistration';
 import { GRADUATION_RULES } from '../modules/credit/domain/rules';
 import { validateAssessment } from '../modules/credit/domain/validation';
-import type { AssessmentInput, CourseDetail, CourseItem, CreditSummary, RequiredCourses, SemesterCourses } from '../modules/credit/types';
+import type {
+  AssessmentInput,
+  CourseDetail,
+  CourseItem,
+  CourseRegistrationInput,
+  CourseType,
+  CreditSummary,
+  GradeDisplay,
+  RequiredCourses,
+  SemesterCourses,
+} from '../modules/credit/types';
+import { findCatalogItem, searchCatalog } from './catalog';
 import {
   assessmentsOf,
   findAssessment,
   findCourse,
   insertAssessment,
+  insertCourse,
   listCourses,
   removeAssessment,
   replaceAssessment,
@@ -125,6 +138,65 @@ function updateAssessment(assessmentId: string, body: unknown) {
   return toAssessment(replaceAssessment(assessmentId, checkInput(course, body, assessmentId))!);
 }
 
+const COURSE_TYPES: CourseType[] = ['COMMON', 'GENERAL', 'CAREER', 'FUSION', 'CREATIVE'];
+const GRADE_DISPLAYS: GradeDisplay[] = ['ACHIEVEMENT_ONLY', 'ACHIEVEMENT_AND_RANK', 'THREE_LEVEL'];
+
+// 과목 등록 (PRD F2). 목록 과목은 이름과 유형을 목록에서 가져오고, 학점은 요청 값을 쓴다
+function registerCourse(body: unknown): CourseItem {
+  const input = body as CourseRegistrationInput;
+  const errors: Record<string, string> = {};
+
+  let name = '';
+  let courseType: CourseType = 'COMMON';
+  let catalogId: string | null = null;
+  if (input.catalogId) {
+    const item = findCatalogItem(input.catalogId);
+    if (item) {
+      name = item.name;
+      courseType = item.courseType;
+      catalogId = item.id;
+    } else {
+      errors.name = '과목 목록에서 찾을 수 없는 과목입니다.';
+    }
+  } else {
+    name = (input.customName ?? '').trim();
+    if (input.courseType && COURSE_TYPES.includes(input.courseType)) courseType = input.courseType;
+    else errors.courseType = '과목 유형을 선택하세요.';
+  }
+
+  // 창체는 평가가 없어 반영 비율과 표기 방식을 쓰지 않는다
+  const creative = courseType === 'CREATIVE';
+  const draft = {
+    gradeYear: input.gradeYear,
+    term: input.term,
+    name,
+    courseType,
+    credits: input.credits,
+    status: input.status,
+    writtenWeight: creative ? 0 : input.writtenWeight,
+    performanceWeight: creative ? 0 : input.performanceWeight,
+  };
+  const sameTermNames = listCourses()
+    .filter((course) => course.gradeYear === draft.gradeYear && course.term === draft.term)
+    .map((course) => course.name);
+  Object.assign(errors, { ...validateCourseDraft(draft, sameTermNames), ...errors });
+
+  if (input.status !== 'IN_PROGRESS' && input.status !== 'COMPLETED') errors.status = '이수 상태를 선택하세요.';
+  if (!creative && !GRADE_DISPLAYS.includes(input.gradeDisplay as GradeDisplay)) {
+    errors.gradeDisplay = '성적 표기 방식을 선택하세요.';
+  }
+  if (Object.keys(errors).length > 0) throw new ApiError(400, '입력값을 확인하세요.', errors);
+
+  const created = insertCourse({
+    ...draft,
+    catalogId,
+    absentCount: 0,
+    totalSessions: null,
+    gradeDisplay: creative ? null : input.gradeDisplay,
+  });
+  return toCourseItem(created);
+}
+
 // 응답 본문 없음(204)
 function deleteAssessment(courseId: string, assessmentId: string) {
   const course = requireCourse(courseId);
@@ -138,6 +210,8 @@ export const creditMockHandlers: Record<string, MockHandler> = {
   'GET /student/credit/summary': () => summary(),
   'GET /student/credit/courses': ({ params }) => semesterCourses(Number(params.gradeYear), Number(params.term)),
   'GET /student/credit/courses/:courseId': ({ pathParams }) => courseDetail(pathParams.courseId),
+  'GET /student/credit/catalog': ({ params }) => searchCatalog(String(params.query ?? '')),
+  'POST /student/credit/courses': ({ body }) => registerCourse(body),
   'GET /student/credit/required-courses': () => requiredCourses(),
   'POST /student/credit/courses/:courseId/assessments': ({ pathParams, body }) => addAssessment(pathParams.courseId, body),
   'PUT /student/credit/assessments/:assessmentId': ({ pathParams, body }) => updateAssessment(pathParams.assessmentId, body),

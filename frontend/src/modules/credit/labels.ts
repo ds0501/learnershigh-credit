@@ -1,5 +1,5 @@
 import { COMPLETION_RULES } from './domain/rules';
-import type { AssessmentKind, CourseStatus, CourseType, RiskLevel } from './types';
+import type { AssessmentKind, CourseStatus, CourseType, GradeDisplay, RiskLevel } from './types';
 
 // 로그인 전 단계라 데모 학생의 현재 학기를 고정한다
 export const CURRENT_TERM = { gradeYear: 1, term: 2 };
@@ -44,6 +44,18 @@ export function badgeOf(status: CourseStatus, riskLevel: RiskLevel): BadgeKind {
   if (riskLevel === 'NO_DATA') return 'noData';
   return 'inProgress';
 }
+
+export const COURSE_STATUS_LABEL: Record<CourseStatus, string> = {
+  IN_PROGRESS: '수강 중',
+  COMPLETED: '이수 완료',
+};
+
+// 성적 표기 방식 (표기 설정일 뿐 이수 위험 계산에는 영향 없음)
+export const GRADE_DISPLAY_LABEL: Record<GradeDisplay, string> = {
+  ACHIEVEMENT_ONLY: '성취도(A~E)만',
+  ACHIEVEMENT_AND_RANK: '성취도 + 5등급 함께 표기',
+  THREE_LEVEL: 'A·B·C 3단계',
+};
 
 export const ASSESSMENT_KIND_LABEL: Record<AssessmentKind, string> = {
   WRITTEN: '지필',

@@ -1,8 +1,7 @@
 // PRD 8장 응답 모양을 따른다. ID는 문자열, 날짜는 YYYY-MM-DD다.
-import type { AssessmentKind, CourseType, RiskLevel } from './domain/types';
+import type { AssessmentKind, CourseStatus, CourseType, GradeDisplay, RiskLevel } from './domain/types';
 
-export type { AssessmentKind, CourseType, RiskLevel };
-export type CourseStatus = 'IN_PROGRESS' | 'COMPLETED';
+export type { AssessmentKind, CourseStatus, CourseType, GradeDisplay, RiskLevel };
 
 export interface CreditProgress {
   earned: number;
@@ -65,6 +64,33 @@ export interface Assessment {
 
 // POST /courses/{courseId}/assessments, PUT /assessments/{assessmentId} 요청 본문
 export type AssessmentInput = Omit<Assessment, 'id' | 'taskId'>;
+
+// GET /api/student/credit/catalog?query= 의 항목 (표준 과목 목록)
+export interface CatalogItem {
+  id: string;
+  name: string;
+  // 교과(군)
+  subjectGroup: string;
+  courseType: CourseType;
+  credits: number;
+}
+
+// POST /api/student/credit/courses 요청 본문
+// 목록 과목이면 catalogId를 보내고, 목록에 없는 과목이면 catalogId는 null이고 customName과 courseType을 보낸다
+export interface CourseRegistrationInput {
+  gradeYear: number;
+  term: number;
+  catalogId: string | null;
+  customName?: string;
+  courseType?: CourseType;
+  // 목록 과목도 학교 편성에 맞춰 바꿀 수 있다
+  credits: number;
+  status: CourseStatus;
+  writtenWeight: number;
+  performanceWeight: number;
+  // 창체는 null
+  gradeDisplay: GradeDisplay | null;
+}
 
 // GET /api/student/credit/courses/{courseId} (PRD 8장에 없음, 점수 입력 패널용으로 추가)
 export interface CourseDetail extends CourseItem {

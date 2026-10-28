@@ -1,5 +1,15 @@
 import { apiGet, apiRequest } from '../../api/client';
-import type { Assessment, AssessmentInput, CourseDetail, CreditSummary, RequiredCourses, SemesterCourses } from './types';
+import type {
+  Assessment,
+  AssessmentInput,
+  CatalogItem,
+  CourseDetail,
+  CourseItem,
+  CourseRegistrationInput,
+  CreditSummary,
+  RequiredCourses,
+  SemesterCourses,
+} from './types';
 
 const BASE = '/student/credit';
 
@@ -13,6 +23,14 @@ export function getCourses(gradeYear: number, term: number) {
 
 export function getRequiredCourses() {
   return apiGet<RequiredCourses>(`${BASE}/required-courses`);
+}
+
+export function searchCatalog(query: string) {
+  return apiGet<CatalogItem[]>(`${BASE}/catalog`, { query });
+}
+
+export function registerCourse(input: CourseRegistrationInput) {
+  return apiRequest<CourseItem>('POST', `${BASE}/courses`, { body: input });
 }
 
 export function getCourseDetail(courseId: string) {

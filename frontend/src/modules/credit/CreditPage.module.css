@@ -44,6 +44,21 @@
   color: var(--color-accent);
 }
 
+.registerButton {
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-on-accent);
+  cursor: pointer;
+}
+
+.registerButton:hover {
+  background: var(--color-accent-strong);
+}
+
 .hint {
   margin: 0;
   font-size: var(--font-size-xs);

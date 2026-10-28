@@ -3,6 +3,9 @@
 export type CourseType = 'COMMON' | 'GENERAL' | 'CAREER' | 'FUSION' | 'CREATIVE';
 export type RiskLevel = 'NORMAL' | 'CAUTION' | 'RISK' | 'NO_DATA';
 export type AssessmentKind = 'WRITTEN' | 'PERFORMANCE';
+export type CourseStatus = 'IN_PROGRESS' | 'COMPLETED';
+// 성적 표기 방식. 표기 설정일 뿐 이수 위험 계산에는 쓰지 않는다
+export type GradeDisplay = 'ACHIEVEMENT_ONLY' | 'ACHIEVEMENT_AND_RANK' | 'THREE_LEVEL';
 
 // 성취율 계산에 필요한 평가 한 건
 export interface ScoredAssessment {

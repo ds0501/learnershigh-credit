@@ -1,0 +1,410 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  background: var(--color-overlay);
+}
+
+.modal {
+  display: flex;
+  flex-direction: column;
+  width: min(560px, 100%);
+  max-height: calc(100vh - 2 * var(--space-4));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+}
+
+.close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: var(--font-size-lg);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.close:hover {
+  color: var(--color-accent);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-5);
+  overflow-y: auto;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.label {
+  padding: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.hint {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-subtle);
+}
+
+/* 칩 (학기, 유형, 이수 상태, 표기 방식) */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.chip {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.chip:hover:not(:disabled) {
+  color: var(--color-text);
+}
+
+.chip:disabled {
+  cursor: default;
+}
+
+.chip:disabled:not(.chipSelected) {
+  opacity: 0.45;
+}
+
+.chipSelected,
+.chipSelected:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-on-accent);
+}
+
+/* 입력 칸 */
+.input {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-active);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+}
+
+.input:focus {
+  border-color: var(--color-accent);
+  outline: none;
+}
+
+.input[aria-invalid='true'] {
+  border-color: var(--color-risk-border);
+}
+
+.searchBox {
+  position: relative;
+}
+
+.searchIcon {
+  position: absolute;
+  top: 50%;
+  left: var(--space-3);
+  display: flex;
+  color: var(--color-text-muted);
+  transform: translateY(-50%);
+}
+
+.searchInput {
+  padding-left: calc(var(--space-3) + 24px);
+}
+
+.results {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-raised);
+}
+
+.resultList {
+  max-height: 220px;
+  margin: 0;
+  padding: var(--space-1) 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.resultItem {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  background: transparent;
+  font-size: var(--font-size-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.resultItem:hover,
+.resultItem:focus-visible {
+  background: var(--color-surface-active);
+  color: var(--color-accent);
+}
+
+.resultName {
+  font-weight: var(--font-weight-bold);
+}
+
+.resultMeta {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.resultNote {
+  margin: 0;
+  padding: var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.info svg {
+  flex-shrink: 0;
+  color: var(--color-accent);
+}
+
+.info strong {
+  color: var(--color-text);
+}
+
+.linkButton {
+  align-self: flex-start;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: var(--font-size-xs);
+  color: var(--color-accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* 유형 + 학점 한 줄 */
+.typeRow {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-active);
+}
+
+.stepButton {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  font-size: var(--font-size-md);
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.stepButton:hover {
+  color: var(--color-accent);
+}
+
+.stepValue {
+  width: 44px;
+  padding: var(--space-1) 0;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  text-align: center;
+  color: var(--color-text);
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.stepValue::-webkit-inner-spin-button,
+.stepValue::-webkit-outer-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+.stepValue:focus {
+  outline: none;
+}
+
+.stepper:focus-within {
+  border-color: var(--color-accent);
+}
+
+.percent {
+  margin-left: -10px;
+  padding-right: var(--space-1);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+/* 성적 산출 방식 */
+.grading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-raised);
+}
+
+.gradingHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.gradingTitle {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.weightRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.weightLabel {
+  font-size: var(--font-size-sm);
+}
+
+.performance {
+  min-width: 56px;
+  margin-left: auto;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-active);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  text-align: center;
+  color: var(--color-accent);
+}
+
+.weightBar {
+  height: 6px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+}
+
+.weightBarWritten {
+  display: block;
+  height: 100%;
+  background: var(--color-accent-dim);
+}
+
+/* 오류, 버튼 */
+.fieldError {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-risk);
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--color-border);
+}
+
+.formError {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-risk);
+}
+
+.primaryButton,
+.secondaryButton {
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+}
+
+.primaryButton {
+  border: 1px solid var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+}
+
+.primaryButton:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.secondaryButton {
+  border: 1px solid var(--color-border);
+  background: transparent;
+}
+
+@media (max-width: 560px) {
+  .typeRow {
+    grid-template-columns: 1fr;
+  }
+}

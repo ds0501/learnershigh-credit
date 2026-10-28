@@ -9,18 +9,17 @@
 - [ ] DB 테이블 V1 / 초기 데이터 V2
 - [x] 큰 틀 레이아웃 (실행 확인: /credit, /tasks, /records, /grades 각각 200, headless Edge로 각 주소를 직접 열어 제목과 활성 메뉴가 맞게 그려지는 것 확인, 백엔드를 켠 상태에서 http://localhost:5173/api/health → 200 {"status":"ok"})
 - [x] 학점 현황 화면 (mock) (실행 확인: npm run build 통과, 개발 서버 + headless Edge(CDP)로 /credit 텍스트 18개 항목 확인, 2학년 1학기 탭 클릭 시 "등록된 과목이 없습니다", VITE_USE_MOCK=false + 백엔드 꺼짐에서 오류 상태 확인)
-- [ ] 과목 등록 모달
+- [x] 과목 등록 모달 (mock) (실행 확인: npm test 53개 통과, npm run build·npm run lint 통과, headless Edge 39개 항목 통과(기존 점수 입력·삭제 45개도 다시 통과))
 - [x] 이수 위험 계산 + 표시 (mock) (실행 확인: npm test 26개 통과(PRD 6장 케이스 7개 포함), npm run build·npm run lint 통과, headless Edge(CDP)로 32개 항목 확인)
 - [x] 평가 점수 입력 (mock) (과목 행 클릭 → 오른쪽 패널. 위 headless 확인에 포함: 통합과학2에 수행 20% 80점 추가 → 48% 주의, 배너 위험 0 · 주의 2, 득점 > 만점은 저장 안 됨)
 - [x] 평가 삭제 (mock) (실행 확인: npm test 29개 통과, headless Edge 45개 항목 통과. 통합과학2에 추가한 평가를 삭제하면 48% 주의 → 35% 이수 위험, 마지막 평가 삭제 시 미입력)
 
 ## 지금 하는 것
-- DB 테이블 V1 작성 준비 (저장소 초기 세팅, 문서, 백엔드·프론트 뼈대, 큰 틀 레이아웃, 학점 현황 화면(mock), 이수 위험 계산과 점수 입력·삭제(mock)는 완료. 프론트는 아직 mock 데이터로만 동작)
+- DB 테이블 V1 작성 준비 (저장소 초기 세팅, 문서, 백엔드·프론트 뼈대, 큰 틀 레이아웃, 학점 현황 화면(mock), 이수 위험 계산과 점수 입력·삭제(mock), 과목 등록 모달(mock)은 완료. 프론트는 아직 mock 데이터로만 동작)
 
 ## 다음 할 일 (현재 기준)
-- DB 테이블 V1, 시연용 초기 데이터 V2 작성 (PRD 7장, 9장). 평가 점수 seed는 frontend/src/mocks/creditStore.ts의 시연 데이터(1학년 1학기 10과목, 2학기 10과목과 평가)를 그대로 옮기면 PRD 9장 숫자가 나온다
-- 백엔드 API 구현: summary, courses, required-courses, courses/{courseId}, 평가 POST/PUT/DELETE. 응답 모양은 frontend/src/modules/credit/types.ts와 맞추고, 계산 규칙은 frontend/src/modules/credit/domain/(completion.ts, rules.ts, validation.ts)과 같게 서비스에 구현한다(테스트 케이스는 domain/completion.test.ts 참고)
-- 과목 등록 모달 (PRD F2)
+- DB 테이블 V1, 시연용 초기 데이터 V2 작성 (PRD 7장, 9장). 표준 과목 목록 seed는 frontend/src/mocks/catalog.ts(시연용 30개)를 옮긴다. 평가 점수 seed는 frontend/src/mocks/creditStore.ts의 시연 데이터(1학년 1학기 10과목, 2학기 10과목과 평가)를 그대로 옮기면 PRD 9장 숫자가 나온다
+- 백엔드 API 구현: summary, courses, required-courses, courses/{courseId}, catalog, 과목 등록 POST /courses, 평가 POST/PUT/DELETE. 응답 모양은 frontend/src/modules/credit/types.ts와 맞추고, 계산 규칙은 frontend/src/modules/credit/domain/(completion.ts, rules.ts, validation.ts, courseRegistration.ts)과 같게 서비스에 구현한다(테스트 케이스는 domain/completion.test.ts 참고)
 
 ## 막힌 것
 - 없음
@@ -34,6 +33,15 @@
 - 필수 이수 학점 구조 (교육부 원문 확인 필요)
 - 점수 입력 패널용 과목 상세 API: PRD 8장에 없어 임시로 GET /api/student/credit/courses/{courseId} (과목 정보 + writtenWeight, performanceWeight, assessments)를 mock에 만듦
 - API 오류 응답 형식 (PRD 8장: 뼈대 생성 후 정함). mock은 임시로 검증 실패 시 400 + { message, fieldErrors: { 항목: 문구 } } 모양으로 오류를 냄
+- 과목 등록 모달에서 임의로 정한 것 (2026-10-28):
+  - 창체: 목업의 유형 칩에 창체가 없어 직접 입력 유형은 공통·일반선택·진로선택·융합선택 4개만 둠. 목록에서 "창의적 체험활동"을 고르면 유형 칩에 "창체"가 추가되어 선택된 채로 보이고, 성적 산출 방식·표기 방식 영역을 숨기고 반영 비율 0/0, 표기 방식 null로 저장
+  - 지필 비율: −/+ 한 번에 10%씩, 숫자 칸에 0~100 정수를 직접 입력할 수도 있음. 수행 = 100 − 지필
+  - 목록 과목: 유형만 잠그고 학점은 −/+(또는 직접 입력)로 바꿀 수 있음(학교마다 편성 학점이 다를 수 있어서)
+  - 이수 완료 상태는 미래 학기에도 막지 않음(PRD에 제한 없음)
+  - 같은 학기 중복 판정은 과목명 비교(공백·대소문자 무시). 목록 과목과 같은 이름을 직접 입력해도 중복으로 봄
+  - 학기 기본값은 지금 보고 있는 학기 탭, 학점 기본값은 4, 성적 표기 방식 기본값은 "성취도 + 5등급 함께 표기"
+  - GET /catalog 응답은 과목 배열(최대 10개), 빈 검색어는 빈 배열
+  - 표준 과목 목록 30개는 시연용 임의 구성(과목명·교과(군)·학점이 공식 목록과 다를 수 있음)
 - 배포 시 프론트 서빙 방식 (새로고침 시 index.html로 돌려주는 설정은 개발 서버에서만 확인함)
 
 ## 실행 방법
@@ -58,6 +66,36 @@
 - 결정과 이유:
 - 막힌 점과 해결:
 - 다음 할 일:
+
+### 2026-10-28 — 신규 과목 등록 모달(mock) 추가
+- 한 일:
+  1) 시연용 표준 과목 목록 30개(공통 14, 일반선택 10, 진로선택 3, 융합선택 2, 창체 1. 현재 mock 과목 모두 포함)를 frontend/src/mocks/catalog.ts에 만들고 mock API GET /student/credit/catalog?query=(과목명 부분 일치, 공백 무시, 최대 10개) 추가. 시연용이라 공식 목록과 다를 수 있다는 주석을 남김
+  2) 과목 등록 규칙을 순수 함수로 frontend/src/modules/credit/domain/courseRegistration.ts에 만듦: setWrittenWeight(지필 0~100 정수, 수행 = 100 − 지필), validateCourseDraft(과목명 필수, 같은 학기 같은 과목명 중복 불가, 학점 1 이상 정수, 창체가 아니면 비율 합 100). 모달과 mock 저장 함수가 같은 함수를 씀
+  3) mock API POST /student/credit/courses: 목록 과목(catalogId)과 직접 입력(customName, courseType) 모두 받음. 검증 실패 시 기존과 같은 400 { message, fieldErrors }. 메모리 저장소에 과목 추가(insertCourse), 저장소 과목에 catalogId와 gradeDisplay 필드 추가
+  4) 학점 현황 제목 줄 오른쪽에 "+ 신규 과목 등록" 버튼, 목업 구성의 모달(학기 칩 6개, 과목명 검색과 후보 목록, 자동 입력 안내 "표준 과목 정보로 교과(군)·유형·학점을 자동 입력했어요 · 교과(군) ○○", "목록에 없는 과목 직접 입력" 전환, 과목 유형 칩, 학점 −/+, 이수 상태 칩, 성적 산출 방식(지필 −/+와 숫자 칸, 수행 비율, 비율 막대), 성적 표기 방식 칩 3개). 필드 옆 오류 문구와 하단 "입력값을 확인하세요. 등록되지 않았습니다." 등록하면 모달이 닫히고 등록한 학기 탭(?term=)으로 이동, 요약·필수 과목·경고 배너·과목 표를 다시 불러옴. 평가가 없는 새 과목은 "미입력"으로 보임. Escape, 바깥 클릭, 취소, ×로 닫힘
+  5) PRD: F2 성적 표기 방식 문구를 화면과 같은 세 선택지("성취도(A~E)만", "성취도 + 5등급 함께 표기", "A·B·C 3단계")로 맞춤, 7장 grade_display 값과 화면 문구 대응 추가, 8장에 GET /catalog 응답 예시, POST /courses 요청 예시(목록 과목에 credits 추가, 직접 입력 예시 새로 추가), 검증 규칙과 성공·실패 응답 설명 추가
+- 바뀐 파일: frontend/src/mocks/(catalog.ts·courseRegistration.test.ts 신규, credit.ts, creditStore.ts), frontend/src/modules/credit/domain/(courseRegistration.ts·courseRegistration.test.ts 신규, types.ts: CourseStatus·GradeDisplay를 domain으로 옮김), frontend/src/modules/credit/(types.ts, api.ts, labels.ts, CreditPage.tsx, CreditPage.module.css, components/CourseRegisterModal.tsx·CourseRegisterModal.module.css 신규), docs/PRD.md(5장 F2, 7장, 8장), docs/PROGRESS.md
+- 확인 방법과 결과:
+  1) npm test → 4개 파일, 53개 모두 통과(새로 24개). 비율 연동(70→30, 0→100, 범위 밖 값 보정, 합계 항상 100), 검증(과목명, 중복(공백·대소문자 무시), 학점, 비율 합, 창체, 학기), mock 등록 후 요약(수강 중 36·남은 124 등), 이수 완료 등록 시 이수 완료·교과·창체 학점, 공통+수강 중은 필수 과목에 포함 / 공통+이수 완료는 제외, 직접 입력 등록, 중복 400과 실패 시 저장 안 됨, 다른 학기에는 같은 과목 등록 가능, 과목 검색
+  2) npm run build 통과, npm run lint 경고 0개
+  3) npm run dev(mock) 후 headless Edge(CDP) 39개 항목 모두 통과:
+     - "+ 신규 과목 등록" 버튼 → 모달 열림, 학기 기본값 1학년 2학기, 표기 방식 3개 문구("성취도(A~E)만 | 성취도 + 5등급 함께 표기 | A·B·C 3단계")
+     - "공통국어" 입력 → 후보 공통국어1, 공통국어2. 공통국어2 선택 → 안내 문구와 "교과(군) 국어", 유형 "공통" 선택·잠김, 학점 4, + 누르면 5(목록 과목도 학점 조정 가능)
+     - 지필 + → 70 / 수행 30, 지필 칸에 0 → 수행 100, 0에서 − → 0 유지
+     - 1학년 2학기에 이미 있는 공통국어2 등록 → 과목명 아래 "같은 학기에 이미 등록된 과목입니다.", 모달 유지
+     - "확률" 검색 → 확률과 통계(일반선택) 선택, 수강 중으로 등록 → 모달 닫힘, 표에 "확률과 통계 일반선택 4 미입력 미입력" 행 추가(10 → 11행), 수강 중 32 → 36, 남은 학점 128 → 124, 학기 합계 36학점, 주소 ?term=1-2
+     - 확률과 통계를 같은 학기에 다시 등록 → 같은 오류 문구, 모달 유지, 행 수 그대로
+     - 2학년 1학기 선택 → 직접 입력 모드 → "AI 기초", 진로선택, 학점 2, 지필 0(수행 100), A·B·C 3단계로 등록 → 모달 닫힘, 2학년 1학기 탭으로 이동(?term=2-1), 표에 "AI 기초 진로선택 2 미입력 미입력", 수강 중 38, 남은 122
+     - 새로고침 → 2학년 1학기 "등록된 과목이 없습니다", 수강 중 32, 남은 128, 1학년 2학기 10과목(확률과 통계 없음)
+     같은 서버에서 지난번 점수 입력·삭제 확인 스크립트(45개)도 다시 돌려 모두 통과
+  스크린샷: 검색 후보, 자동 입력, 중복 오류, 등록 후 표, 직접 입력 화면을 찍어 눈으로 봄(로컬 임시 폴더, 커밋 안 함). 확인 후 개발 서버 종료(5173 포트 비어 있음)
+  확인 못 함: 화면에서 공통과목을 등록했을 때 남은 필수 과목 목록이 바뀌는 모습(단위 테스트로만 확인), 화면에서 이수 완료로 등록했을 때 이수 완료·교과·창체 학점이 바뀌는 모습(단위 테스트로만 확인), 화면에서 창체를 골랐을 때 성적 산출 영역이 숨는 모습, 키보드만으로 후보를 고르는 동작(방향키 이동은 만들지 않았고 Tab으로만 이동), 좁은 화면(모바일) 배치, 실제 API
+- 결정과 이유: "미정"의 "과목 등록 모달에서 임의로 정한 것" 항목에 모아 적음(창체 처리, 지필 10% 단위와 직접 입력, 목록 과목은 유형만 잠그고 학점은 조정 가능, 미래 학기 이수 완료 허용, 이름 기준 중복 판정, 기본값, catalog 응답 모양, 시연용 목록). 그 밖에:
+  - 같은 학기 중복은 모달에서 미리 막지 않고 저장할 때 mock(서버 역할)이 확인해 400으로 돌려주고, 모달은 그 fieldErrors를 필드 옆에 보여줌(모달은 다른 학기의 과목 목록을 갖고 있지 않아서)
+  - 검색은 과목을 고르기 전, 검색어가 있을 때만 요청. 고른 뒤 입력칸을 고치면 선택이 풀리고 다시 검색
+  - CourseStatus, GradeDisplay 타입을 domain/types.ts로 옮기고 API 타입(types.ts)에서 다시 내보냄(domain이 API 타입에 의존하지 않게)
+- 막힌 점과 해결: 브라우저 확인 스크립트를 셸 heredoc 한 번에 쓰다가 명령이 길어 파일이 중간에 잘림 → 본문을 별도 파일로 써서 합침. 화면 문제는 없었고 39개가 첫 실행에 통과
+- 다음 할 일: DB 테이블 V1과 시연용 데이터 V2, 백엔드 API와 계산 서비스
 
 ### 2026-10-28 — 평가 삭제 추가
 - 한 일: 점수 입력 패널의 평가 목록 각 행에 "수정" 옆 "삭제" 추가. 브라우저 confirm 창 대신 2단계 방식: "삭제"를 누르면 그 행이 "(평가 이름) 정말 삭제할까요? [삭제] [취소]"로 바뀜. 삭제하면 패널(목록, 성취율, 위험 표시, 필요 평균 안내)과 학점 현황(요약, 경고 배너, 필수 과목 배지, 과목 표)을 다시 불러와 다시 계산된 값으로 바뀜. 수정 중인 평가를 지우면 폼이 "평가 추가"로 돌아감. mock API DELETE /student/credit/courses/{courseId}/assessments/{assessmentId}(성공 시 본문 없음, 그 과목의 평가가 아니면 404) 추가, PRD 8장 API 표에 추가

@@ -90,7 +90,7 @@
 - 이수 상태: 수강 중 / 이수 완료.
 - 성적 산출 방식 (학교 평가계획 그대로)
   - 반영 비율: 지필평가 %와 수행평가 %. 합계는 100%. 한쪽을 바꾸면 다른 쪽이 자동으로 맞춰진다. 수행 100%(지필 0%)도 허용한다.
-  - 성적 표기 방식: 성취도 A~E만 / 성취도와 1~5등급 함께 표기 / A·B·C 3단계(체육·예술 등)
+  - 성적 표기 방식 (선택지 세 개): "성취도(A~E)만" / "성취도 + 5등급 함께 표기" / "A·B·C 3단계"(체육·예술 등)
 - 목록에 없는 과목은 직접 입력한다 (과목명, 유형, 학점).
 - 성적 표기 방식은 표기 설정일 뿐 이수 위험 계산에는 영향이 없다.
 - 인수 기준: 등록한 과목이 학점 현황의 해당 학기 탭과 진행바에 반영된다. 반영 비율 합이 100%가 아니면 등록할 수 없다.
@@ -196,7 +196,7 @@ PK는 내부적으로 BIGINT이고, API로 나갈 때는 문자열로 내보낸�
 | grade_year, term | 학년(1~3), 학기(1~2) |
 | status | IN_PROGRESS / COMPLETED |
 | written_weight, performance_weight | 지필, 수행 반영 비율 (합 100) |
-| grade_display | ACHIEVEMENT_ONLY / ACHIEVEMENT_AND_RANK / THREE_LEVEL |
+| grade_display | ACHIEVEMENT_ONLY(성취도(A~E)만) / ACHIEVEMENT_AND_RANK(성취도 + 5등급 함께 표기) / THREE_LEVEL(A·B·C 3단계). 창체는 NULL |
 | absent_count | 결석 수 (기본 0) |
 | total_sessions | 총 수업 수 (NULL 가능) |
 
@@ -318,18 +318,49 @@ riskLevel 값: NORMAL / CAUTION / RISK / NO_DATA. achievementRate가 없으면(�
 ```
 (예시는 7과목 중 3과목만 적음)
 
+### 응답 예시: GET /catalog?query=공통국어
+과목명 부분 일치(공백 무시) 검색. 표준 과목 배열을 돌려준다.
+```json
+[
+  { "id": "1", "name": "공통국어1", "subjectGroup": "국어", "courseType": "COMMON", "credits": 4 },
+  { "id": "2", "name": "공통국어2", "subjectGroup": "국어", "courseType": "COMMON", "credits": 4 }
+]
+```
+
 ### 요청 예시: POST /courses
+목록 과목: catalogId를 보내면 과목명과 유형은 과목 목록 값을 쓴다. 학점은 학교 편성에 맞춰 바꿀 수 있어 요청 값을 쓴다.
 ```json
 {
   "gradeYear": 1,
   "term": 2,
   "catalogId": "15",
+  "credits": 4,
   "status": "IN_PROGRESS",
   "writtenWeight": 60,
   "performanceWeight": 40,
   "gradeDisplay": "ACHIEVEMENT_AND_RANK"
 }
 ```
+
+목록에 없는 과목(직접 입력): catalogId는 null이고 customName, courseType을 보낸다.
+```json
+{
+  "gradeYear": 2,
+  "term": 1,
+  "catalogId": null,
+  "customName": "AI 기초",
+  "courseType": "CAREER",
+  "credits": 2,
+  "status": "IN_PROGRESS",
+  "writtenWeight": 0,
+  "performanceWeight": 100,
+  "gradeDisplay": "THREE_LEVEL"
+}
+```
+- 창체(courseType CREATIVE)는 평가가 없어 writtenWeight, performanceWeight를 0으로 저장하고 gradeDisplay는 null이다.
+- 검증: 과목명 필수, 같은 학기에 같은 과목명(공백·대소문자 무시) 중복 불가, 학점 1 이상 정수, 창체가 아니면 반영 비율 합 100.
+- 성공 응답: 만든 과목 하나(GET /courses의 과목과 같은 모양). 평가가 없으므로 achievementRate는 null, riskLevel은 NO_DATA(창체는 NORMAL).
+- 실패 응답(임시, 오류 형식 미정): 400 { "message": "입력값을 확인하세요.", "fieldErrors": { "name": "같은 학기에 이미 등록된 과목입니다." } }
 
 ## 9. 시연용 데이터
 

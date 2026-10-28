@@ -5,6 +5,7 @@ import { useAsync } from '../../api/useAsync';
 import { PageHeader } from '../../layout/PageHeader';
 import { getCourses, getRequiredCourses, getSummary } from './api';
 import { AssessmentDrawer } from './components/AssessmentDrawer';
+import { CourseRegisterModal } from './components/CourseRegisterModal';
 import { CourseTable } from './components/CourseTable';
 import { Disclaimer } from './components/Disclaimer';
 import { RequiredCourseList } from './components/RequiredCourseList';
@@ -42,9 +43,27 @@ export function CreditPage() {
     reloadCourses();
   }, [reloadSummary, reloadRequired, reloadCourses]);
 
+  // 신규 과목 등록 모달
+  const [registerOpen, setRegisterOpen] = useState(false);
+  const closeRegister = useCallback(() => setRegisterOpen(false), []);
+  const handleRegistered = (gradeYear: number, term: number) => {
+    setRegisterOpen(false);
+    // 등록한 학기 탭으로 이동하고 요약, 배너, 필수 과목, 과목 표를 다시 계산한다
+    selectTerm(`${gradeYear}-${term}`);
+    refreshAll();
+  };
+
   return (
     <>
-      <PageHeader title="학점 현황" subtitle={termLabel(CURRENT_TERM.gradeYear, CURRENT_TERM.term)} />
+      <PageHeader
+        title="학점 현황"
+        subtitle={termLabel(CURRENT_TERM.gradeYear, CURRENT_TERM.term)}
+        actions={
+          <button type="button" className={styles.registerButton} data-action="open-register" onClick={() => setRegisterOpen(true)}>
+            + 신규 과목 등록
+          </button>
+        }
+      />
 
       <div className={styles.layout}>
         <div className={styles.column}>
@@ -101,6 +120,9 @@ export function CreditPage() {
         </section>
       </div>
 
+      {registerOpen && (
+        <CourseRegisterModal initialTermKey={selectedTerm.key} onClose={closeRegister} onRegistered={handleRegistered} />
+      )}
       {selectedCourseId && <AssessmentDrawer courseId={selectedCourseId} onClose={closeDrawer} onSaved={refreshAll} />}
     </>
   );
