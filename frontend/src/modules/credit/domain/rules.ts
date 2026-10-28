@@ -7,7 +7,7 @@ export interface CompletionRules {
   minAttendanceRate: number;
   // 과목 유형별 최소 성취율(%). 값이 없는 유형은 성취율로 판정하지 않는다
   minAchievementRate: Partial<Record<CourseType, number>>;
-  // "주의" 구간의 상한(%). 최소 성취율 이상 이 값 미만이면 주의. 임시 값(미정)
+  // "주의" 구간의 상한(%). 최소 성취율 이상 이 값 미만이면 주의
   cautionBelowRate: number;
 }
 
