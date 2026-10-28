@@ -44,6 +44,7 @@ PRD 8장은 이 문서의 요약이며, 상세 기준은 이 문서다. 동작�
 | `CAREER` | 진로선택 |
 | `FUSION` | 융합선택 |
 | `CREATIVE` | 창체 |
+| `SPECIALIZED` | 전문교과 (2026-10-28 추가. DB catalog에만 있고 프론트는 아직 대응 안 됨 — PRD 12장 "미정") |
 
 ### 이수 상태 `status`
 | 값 | 화면 문구 |
@@ -133,13 +134,14 @@ GET /courses/{courseId}의 응답. `CourseItem`의 모든 필드에 아래를 �
 | `taskId` | string \| null | 기존 수행평가 연결용. 이번 단계는 항상 `null` |
 
 ### 표준 과목 `CatalogItem`
+학점은 포함하지 않는다. 학교마다 편성이 달라 과목 등록 시 항상 직접 입력한다(4.5).
+
 | 필드 | 타입 | 설명 |
 |---|---|---|
 | `id` | string | 표준 과목 ID |
 | `name` | string | 과목명 |
 | `subjectGroup` | string | 교과(군) |
 | `courseType` | courseType | 과목 유형 |
-| `credits` | number | 기준 학점 |
 
 ## 4. 엔드포인트
 
@@ -233,8 +235,8 @@ GET /courses/{courseId}의 응답. `CourseItem`의 모든 필드에 아래를 �
 <!-- contract:catalog 200 -->
 ```json
 [
-  { "id": "1", "name": "공통국어1", "subjectGroup": "국어", "courseType": "COMMON", "credits": 4 },
-  { "id": "2", "name": "공통국어2", "subjectGroup": "국어", "courseType": "COMMON", "credits": 4 }
+  { "id": "1", "name": "공통국어1", "subjectGroup": "국어", "courseType": "COMMON" },
+  { "id": "2", "name": "공통국어2", "subjectGroup": "국어", "courseType": "COMMON" }
 ]
 ```
 
@@ -726,7 +728,6 @@ GET /courses/{courseId}의 응답. `CourseItem`의 모든 필드에 아래를 �
 | `name` | `name` |
 | `subjectGroup` | `subject_group` |
 | `courseType` | `course_type` |
-| `credits` | `credits` |
 
 ### 요약 (`/summary`)
 | 응답 필드 | 출처 |

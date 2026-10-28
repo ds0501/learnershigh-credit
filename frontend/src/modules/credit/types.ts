@@ -66,13 +66,13 @@ export interface Assessment {
 export type AssessmentInput = Omit<Assessment, 'id' | 'taskId'>;
 
 // GET /api/student/credit/catalog?query= 의 항목 (표준 과목 목록)
+// 학점은 학교마다 편성이 달라 포함하지 않는다. 과목 등록 시 항상 직접 입력한다
 export interface CatalogItem {
   id: string;
   name: string;
   // 교과(군)
   subjectGroup: string;
   courseType: CourseType;
-  credits: number;
 }
 
 // POST /api/student/credit/courses 요청 본문

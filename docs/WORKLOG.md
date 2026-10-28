@@ -8,6 +8,77 @@
 - 막힌 점:
 - 다음 할 일:
 
+### 2026-10-28 — 졸업/이수 기준값과 데모 학생 과목·평가 시딩 (V4)
+- 한 일: PROGRESS.md "다음 할 일" 1번(남은 시연용 초기 데이터)을 database/migrations/V4__seed_demo_student_data.sql로 작성. credit_graduation_rule 1행(2025, 192/174/18), credit_completion_rule 6행(course_type별, effective_year 2026, COMMON만 min_achievement 40·caution_below_rate 50, 나머지는 NULL), credit_student_course 20행(1학년 1학기 10개 COMPLETED + 2학기 10개 IN_PROGRESS), credit_assessment 44행. 전부 frontend/src/mocks/creditStore.ts의 시연 데이터와 같은 값
+- 바뀐 파일: database/migrations/V4__seed_demo_student_data.sql(신규), docs/PROGRESS.md(완료, 다음 할 일)
+- 확인 결과(확인하지 못한 것 포함):
+  - creditStore.ts를 다시 한 줄씩 대조하다가 "운동과 건강"을 처음에 실제 2022 교육과정 분류(진로선택=CAREER)로 잘못 넣었던 걸 발견. creditStore.ts와 api-contract.md 예시는 둘 다 GENERAL로 되어 있어(기존에 이미 문서·테스트로 고정된 값) GENERAL로 고쳐서 다시 생성함
+  - `./gradlew bootRun`으로 실제 적용 확인: `Current version: 3` → `Migrating to "4 - seed demo student data"` → `Successfully applied 1 migration ... now at version v4`
+  - DB에서 직접 확인: credit_student_course 20행·credit_assessment 44행. id=16이 통합과학2(기대값과 일치), id=8의 custom_name='체육'·catalog_id=NULL(카탈로그에 '체육1/체육2'만 있어 정확히 일치하는 이름이 없어 직접 입력으로 처리) 확인
+  - 성취율을 손으로 다시 계산해 PRD·api-contract.md 예시와 대조: 통합과학2(id=16) = (25×30+50×20)÷50 = 35%(예시와 일치), 공통수학2(id=12) = (50×30+40×20)÷50 = 46%(예시와 일치)
+- 결정과 이유:
+  - student_id는 'demo-student'로 고정(문서에 특정 문자열이 정해진 적이 없어 새로 정함)
+  - credit_completion_rule.effective_year=2026(PRD 1장 "2026학년도부터" 적용 문구 기준), credit_graduation_rule.effective_year=2025(PRD 1장 "2025학년도 고1부터 전면 시행" 기준) — 둘이 다른 연도인 이유는 PRD에 적힌 시행 시점이 서로 다르기 때문
+  - catalog_id는 이름으로 서브쿼리 조회(실제 DB catalog 순서가 frontend mock 순서와 달라 숫자를 하드코딩하면 틀림 — PROGRESS.md "미정" 참고). student_course_id·assessment id는 빈 테이블에 이 파일 하나로만 순서대로 넣은 것이라 1~20, 1~44로 고정됨을 믿고 하드코딩함(AUTO_INCREMENT)
+- 막힌 점: 없음
+- 다음 할 일: PROGRESS.md "다음 할 일" 2번(공통: 데모 학생 고정 처리, 오류 응답 형식, 성공 코드)부터 — 실제 컨트롤러/서비스 코드 작성 시작
+
+### 2026-10-28 — 전문교과 이수 기준 반영
+- 한 일: 사용자가 알려준 전문교과 이수 기준("2026학년도부터는 선택과목에 준하는 전문교과는 출석률 2/3 이상만으로 학점 취득 가능")을 PRD 6장 이수 기준 표에 추가(전문교과 행: 최소 출석률 66.67%, 최소 성취율 없음). 이전 WORKLOG "표준 과목 목록 실데이터 시딩" 항목에서 "미정"으로 남겨뒀던 것 중 이 부분을 해결함
+- 바뀐 파일: docs/PRD.md(1장 출처, 6장 이수 기준 표, 12장 미정), docs/PROGRESS.md(다음 할 일, 미정). DB·코드 변경 없음
+- 확인 결과(확인하지 못한 것 포함): 사용자가 알려준 내용을 그대로 반영. 교육부 원문으로 별도 대조는 하지 않음(확인 못 함, PRD 1장 "출처와 한계"에 이미 있는 제약과 같음)
+- 결정과 이유:
+  - 사용자가 함께 알려준 "특성화고·산업수요맞춤형고는 교과 174학점 중 전문교과 80학점 이상 + 보통교과 64학점 이상 편성·이수"는 졸업 기준 쪽 정보라 이번 항목과 분리해서 처리함. 이건 credit_graduation_rule에 반영하지 않고 PRD 12장 "미정"에 "이번 범위 밖(일반고만 다룸)"으로 적어 둠 — 지금 이 기능은 일반고 기준(192/174/18)만 구현 대상이고(CLAUDE.md, hscredit.kr 페이지의 "일반고 편성 기준" 안내와도 일치), 전문교과를 catalog에 넣은 건 일반고 학생도 전문교과를 선택할 수 있어서일 뿐 특성화고 졸업 기준을 구현하겠다는 뜻은 아니었음. 학교 유형 구분이 필요해지면 그때 다시 설계해야 함(지금 credit_graduation_rule에는 학교 유형 컬럼이 없음)
+  - credit_completion_rule에 전문교과 행을 넣을 때 min_achievement는 NULL(선택과목과 같음)로 하면 됨이 이번에 확정됨
+- 막힌 점: 없음
+- 다음 할 일: 데모 학생 과목·평가 초기 데이터(PROGRESS.md "다음 할 일" 1번) — 이제 전문교과 이수 기준도 정해졌으니 credit_completion_rule 시딩에 포함 가능
+
+### 2026-10-28 — 표준 과목 목록 실데이터 시딩
+- 한 일: credit_course_catalog에 실제 과목 목록을 채움. 한국교육과정평가원 고교학점제 홈페이지(https://www.hscredit.kr/curriculum/subjectInfo)의 과목별 상세안내 표를 받아와 과목명·교과(군)·교과유형을 추출(총 290개). 그중 135개가 "전문교과"(특성화고·마이스터고 편성)였는데, 사용자에게 포함 여부를 물어 "다 포함한다(290개 전체)"로 결정됨. 지금 course_type CHECK 제약(COMMON/GENERAL/CAREER/FUSION/CREATIVE)에는 전문교과 자리가 없어 V2__add_specialized_course_type.sql로 SPECIALIZED 값을 추가(컬럼도 VARCHAR(10)→VARCHAR(20), SPECIALIZED가 11자라 안 들어감). V3__seed_course_catalog.sql로 290개 + 창의적 체험활동(공식 목록에는 없어 수동 추가, 기존 frontend mock과 같은 방식) 1개 = 291개를 INSERT
+- 바뀐 파일: database/migrations/V2__add_specialized_course_type.sql(신규), database/migrations/V3__seed_course_catalog.sql(신규), docs/PRD.md(1장 출처, 7장 course_type 값 목록, 12장 미정), docs/api-contract.md(courseType 값 표에 SPECIALIZED 추가), docs/PROGRESS.md(완료, 다음 할 일, 미정)
+- 확인 결과(확인하지 못한 것 포함):
+  - 페이지를 curl로 받은 원본 HTML(487KB)에 표가 서버 렌더링돼 있어 `<tr data-type= data-group= data-name=>` 속성을 정규식으로 그대로 파싱(LLM 요약 대신 — 290행 전체가 정확한지 요약 모델에 맡기면 누락·변형 위험이 있어서 원본 HTML을 직접 파싱함). 행 수 291(헤더 포함) 확인, 중복 과목명 없음 확인, 홑따옴표·& 등 SQL 이스케이프 필요한 문자 없음 확인
+  - Chrome 확장이 연결돼 있지 않아 브라우저로 직접 열어 눈으로 재확인은 못 함(확인 못 함). curl 원본과 WebFetch 요약(상위 20개 예시) 결과가 일치하는 것으로 교차 확인함
+  - `cd backend && ./gradlew bootRun`으로 실제 Flyway 적용 확인: `Current version: 1` → `Migrating to "2 - add specialized course type"` → `Migrating to "3 - seed course catalog"` → `Successfully applied 2 migrations ... now at version v3`. DB에서 `SELECT COUNT(*) FROM credit_course_catalog` → 291, `GROUP BY course_type` → SPECIALIZED 135 / CAREER 64 / FUSION 38 / GENERAL 35 / COMMON 18 / CREATIVE 1(합계 291, 기대값과 일치)
+  - 한글이 mysql CLI에서 "?"로 보여 데이터 손상처럼 보였으나 `--default-character-set=utf8mb4`로 다시 조회하니 정상 표시, `CHAR_LENGTH`/`LENGTH`로 바이트 수 확인(예: "공통국어1" 5자 13바이트, 한글 1자=3바이트 계산과 일치) → 클라이언트 인코딩 설정 문제였을 뿐 데이터는 정상
+  - 저작권: 사이트에 "저작권자: 한국교육과정평가원", "본 내용은 일반계 고등학교(일반고) 편성 기준"이라는 안내는 있으나 재배포 조건을 명시한 라이선스 표기(공공누리 등)는 페이지에서 찾지 못함(확인 못 함)
+- 결정과 이유:
+  - 전문교과 135개 포함 여부는 사용자에게 직접 물어 결정함(임의로 정하지 않음). 포함하기로 하면서 기존 설계(course_type 5개)를 넘어서게 돼 스키마 변경이 필요해짐
+  - V1은 이미 Flyway로 실제 DB에 적용된 파일이라 고치지 않고 V2(스키마 확장), V3(데이터)로 분리해서 추가함
+  - 전문교과 새 값 이름은 "SPECIALIZED"로 정함(기존 값들처럼 영어 대문자 스네이크 없는 단어 한 개)
+  - 창의적 체험활동은 이 공식 290개 목록에 없다(KICE 분류상 "과목"이 아니라 별도 교육과정 영역). 기존 frontend mock(catalog.ts)이 이미 창체를 수동으로 1개 추가해 둔 방식과 똑같이 맞춰서 291번째 행으로 추가함
+  - 전문교과의 이수 기준(credit_completion_rule 행)은 지금 정하지 않고 "미정"에 남김 — PRD 6장이 공통/선택과목만 다루고 있어 임의로 선택과목과 같다고 가정하지 않음
+- 막힌 점: Chrome 확장 미연결로 브라우저 직접 확인은 못 함(위 "확인 결과" 참고, curl+WebFetch 교차 확인으로 대신함)
+- 다음 할 일: 데모 학생 과목 20개·평가 44개 시딩(이때 catalogId를 실제 DB 값으로 다시 찾아 써야 함 — PROGRESS.md "미정" 참고), 졸업·이수 기준 시딩
+
+### 2026-10-28 — DB 테이블 V1 작성
+- 한 일: database/migrations/V1__create_credit_tables.sql 작성. PRD 7장의 5개 테이블(credit_course_catalog, credit_completion_rule, credit_graduation_rule, credit_student_course, credit_assessment)을 그대로 옮기고, 각 enum성 컬럼(course_type, status, kind, grade_display)에 CHECK 제약, FK(catalog_id, student_course_id), 범위 체크(credits≥1, weight 0~100, score≤max_score 등)를 추가. credit_assessment.student_course_id는 ON DELETE CASCADE로 둬서 "과목 삭제 시 평가도 함께 삭제"(api-contract.md 4.8) 요구를 DB 레벨에서도 보장함
+- 바뀐 파일: database/migrations/V1__create_credit_tables.sql(신규), docs/PROGRESS.md(완료 체크리스트, 다음 할 일, 미정, 막힌 것)
+- 확인 결과(확인하지 못한 것 포함):
+  - 이 머신에 Java 21이 없어 ./gradlew flywayMigrate / bootRun을 실행할 수 없었음(확인 못 함). 대신 docker compose up -d로 MySQL(8.4)을 띄우고 mysql 클라이언트로 SQL 파일을 직접 실행해 문법·제약조건을 확인: 5개 테이블 모두 생성됨(SHOW TABLES). 잘못된 course_type(INVALID) INSERT → chk_catalog_course_type 위반으로 거부. credits=0 INSERT → chk_student_course_credits 위반으로 거부. score>max_score INSERT → chk_assessment_score 위반으로 거부. catalog_id FK로 정상 student_course INSERT 성공. student_course 삭제 시 연결된 credit_assessment 행이 cascade로 같이 삭제됨을 확인(삭제 후 COUNT(*)=0)
+  - 확인 후 테스트로 넣은 행은 전부 지우고 5개 테이블을 DROP해 스키마를 다시 빈 상태로 되돌림 — Flyway가 자기 schema_history 없이 이미 존재하는 테이블을 만나 실패하는 걸 막기 위함(다음에 Java 21 설치 후 ./gradlew bootRun을 돌리면 Flyway가 V1을 처음부터 깨끗하게 적용해야 함, 이 부분은 아직 확인 못 함)
+- 결정과 이유:
+  - "미정"에 있던 주의 상한(50%) 저장 위치를 지금 결정: credit_completion_rule에 caution_below_rate(DECIMAL(5,2), NULL) 컬럼 추가. CLAUDE.md "이수 기준은 설정값으로 둔다"와 맞고, 기존 min_attendance/min_achievement와 같은 테이블·같은 패턴(과목유형·연도별 1행)이라 분리할 이유가 없었음. "미정"에서 이 항목 지움
+  - credit_completion_rule, credit_graduation_rule에는 PRD 7장에 없던 surrogate PK(id)를 추가함(자연키만으로는 JPA 엔티티 매핑이 번거로워서). 자연키는 각각 UNIQUE(course_type, effective_year), UNIQUE(effective_year)로 보존
+  - credit_assessment.task_id는 FK를 걸지 않음(기존 수행평가 시스템은 이 DB 밖에 있어 참조 무결성을 보장할 수 없음, PRD에도 "이번 단계는 비워 둠"이라고 되어 있음)
+  - enum성 값은 MySQL ENUM 타입 대신 VARCHAR + CHECK로 둠(컬럼 길이·허용값이 SQL에 그대로 보여 유지보수가 쉽고, MySQL 8.4는 CHECK를 강제함)
+- 막힌 점: Java 21 미설치로 Flyway/Gradle 경로를 통한 확인은 못 함. 다음에 백엔드를 처음 실행하는 사람이 Java 21을 설치하고 ./gradlew bootRun → Flyway가 V1을 적용하는지 반드시 확인해야 함
+- 다음 할 일: 시연용 초기 데이터 V2(PROGRESS.md "다음 할 일" 1번)
+
+### 2026-10-28 — 표준 과목 목록에서 학점 제거(항상 학생 입력)
+- 한 일: credit_course_catalog(표준 과목 목록)에서 credits를 빼고, credit_student_course.credits만 남김. 학점은 학교 교육과정 편성에 따라 달라 전국 공통 값이 없고, 기존 api-contract.md 4.5에도 "목록 과목도 요청 값을 쓴다(학교 편성에 맞춰 바꿀 수 있음)"고 이미 적혀 있어 catalog.credits는 저장·판정에 쓰인 적이 없던 값이었음. 과목 등록 모달에서 목록 과목을 골라도 학점을 자동 채우지 않고 항상 직접 입력하도록 바꿈(이전엔 선택 시 표준 학점으로 자동 채움 + 수정 가능이었음)
+- 바뀐 파일:
+  - docs/PRD.md: 7장 credit_course_catalog 표에서 credits 제거(이유 한 줄 추가), 3·4(시나리오)·F2 설명에서 "학점 자동 채움" 문구 수정
+  - docs/api-contract.md: CatalogItem 필드 표·DB 대응표·GET /catalog 예시에서 credits 제거
+  - frontend/src/modules/credit/types.ts: CatalogItem에서 credits 제거
+  - frontend/src/mocks/catalog.ts: CatalogSeed/SEEDS/매핑에서 credits 제거
+  - frontend/src/modules/credit/components/CourseRegisterModal.tsx: 검색 결과의 학점 표시, 선택 시 setCredits(item.credits) 자동 채움, 안내 문구의 "학점" 제거
+  - (ERD 아티팩트: 저장소 밖 claude.ai 아티팩트라 커밋 대상 아님)
+- 확인 결과: npm run build(tsc -b) 통과. npm test → 7개 파일 68개 모두 통과(수정 불필요, catalog 응답의 credits를 단언하는 테스트가 없었음). npm run lint 경고 0개. frontend/src/mocks/credit.ts의 findCatalogItem 사용처(과목 등록 처리)는 name·courseType만 쓰고 credits는 항상 input.credits(요청값)를 써서 이번 변경과 무관함을 코드로 확인
+- 결정과 이유: 사용자가 "학점은 학교마다 과목별로 다를 수 있어 학생(학교) 입력이 맞다"고 판단, catalog에 남겨두면 추천값을 그대로 쓰고 넘어가는 오입력 위험과 안 쓰이는 컬럼이라는 정합성 문제가 있어 완전히 제거하는 쪽으로 결정(자동완성 편의는 포기). 이수 기준(credit_completion_rule)·졸업 기준(credit_graduation_rule)은 "전국 공통"이어도 effective_year 축이 있어(교육과정 개정마다 바뀜) 테이블 2개로 유지하기로 함(CLAUDE.md "이수 기준은 설정값으로 둔다"와 일치) — 이 부분은 테이블 구조를 바꾸지 않음
+- 막힌 점: 없음
+- 다음 할 일: "미정"의 주의 상한(50%) 저장 위치는 아직 못 정함 — DB 테이블 V1 착수 전에 정해야 함
+
 ### 2026-10-28 — 성취율 오차 안내와 일정, 형식 정리
 - 한 일: api-contract.md 1장 표 아래에 성취율 끝자리 부동소수점 오차 안내 한 줄(예: 음악 78.99999999999999), 표의 "숫자" 칸에 "(끝자리 오차 안내는 아래 참고)" 추가. PROGRESS "미정"에 성취율 소수 오차 처리 방식 추가. PRD 13장 일정 표에 "진행 (2026-10-28 기준)" 칸 추가(커밋 날짜로 확인한 사실만), 다음 단계(테이블과 seed, 백엔드 API, 날짜 미정) 한 줄. WORKLOG 형식 설명의 항목 이름을 CLAUDE.md 규칙에 맞춤("확인 결과(확인하지 못한 것 포함)", "막힌 점")
 - 바뀐 파일: docs/api-contract.md(1장), docs/PROGRESS.md(미정), docs/PRD.md(13장), docs/WORKLOG.md(형식 설명, 이 항목). 코드 변경 없음
