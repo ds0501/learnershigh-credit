@@ -1,4 +1,4 @@
-// PRD 8장 응답 모양을 따른다. ID는 문자열, 날짜는 YYYY-MM-DD다.
+// API 응답·요청 모양. 기준 문서는 docs/api-contract.md(3장)다. ID는 문자열, 날짜는 YYYY-MM-DD다.
 import type { AssessmentKind, CourseStatus, CourseType, GradeDisplay, RiskLevel } from './domain/types';
 
 export type { AssessmentKind, CourseStatus, CourseType, GradeDisplay, RiskLevel };
@@ -31,7 +31,7 @@ export interface CourseItem {
   // 미입력이면 null. 반올림하지 않은 값이며 화면에서 정수로 반올림해 표시한다
   achievementRate: number | null;
   riskLevel: RiskLevel;
-  // 남은 평가에서 이수 기준을 넘기 위해 필요한 평균(%). 이수 위험 과목에만 있다
+  // 남은 평가에서 이수 기준을 넘기 위해 필요한 평균(%). RISK인 공통과목의 성취율이 40 미만이고 남은 반영 비율이 있을 때만 있다
   requiredAverage?: number;
 }
 
@@ -92,7 +92,7 @@ export interface CourseRegistrationInput {
   gradeDisplay: GradeDisplay | null;
 }
 
-// GET /api/student/credit/courses/{courseId} (PRD 8장에 없음, 점수 입력 패널용으로 추가)
+// GET /api/student/credit/courses/{courseId} (점수 입력 패널용 과목 상세)
 export interface CourseDetail extends CourseItem {
   gradeYear: number;
   term: number;

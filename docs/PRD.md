@@ -231,150 +231,28 @@ course_type, effective_year, min_attendance, min_achievement(공통만 값 있�
 ### credit_graduation_rule (졸업 학점 기준)
 effective_year, total_credits(192), subject_credits(174), creative_credits(18)
 
-## 8. API 초안
+## 8. API 요약
 
-경로는 /api/student/credit/**, JSON은 camelCase, ID는 문자열, 날짜는 YYYY-MM-DD.
-오류 응답 형식은 뼈대 생성 후 정한다.
+상세 명세(요청·응답 예시, 검증 규칙과 오류 문구, 계산 규칙, DB 대응)는 **docs/api-contract.md**가 기준이다. 이 장은 요약이며, 두 문서가 다르면 api-contract.md를 따르고 이 장을 고친다.
+
+- 경로 접두사 /api/student/credit, JSON은 camelCase, ID는 문자열, 날짜는 YYYY-MM-DD.
+- 성공: 조회·수정 200, 생성(POST) 201, 삭제 204(본문 없음).
+- 오류: 검증 실패 400, 없는 대상 404. 본문은 { "message": ..., "fieldErrors": { 필드: 문구 } } (404는 fieldErrors가 빈 객체).
+- 로그인이 없어 데모 학생 1명 고정.
 
 | 메서드 | 경로 | 설명 |
 |---|---|---|
 | GET | /api/student/credit/summary | 학점 현황 요약 (진행바, 교과/창체, 경고 배너) |
 | GET | /api/student/credit/courses?gradeYear=1&term=2 | 학기별 수강 과목과 성취율, 상태 |
-| GET | /api/student/credit/required-courses | 남은 필수 과목 체크리스트 |
-| GET | /api/student/credit/catalog?query=공통 | 과목 검색 |
+| GET | /api/student/credit/required-courses | 남은 필수 과목 (이수하지 않은 공통과목) |
+| GET | /api/student/credit/catalog?query=공통국어 | 표준 과목 검색 (최대 10개) |
 | POST | /api/student/credit/courses | 과목 등록 |
-| PATCH | /api/student/credit/courses/{courseId} | 과목 이수 상태 변경 (본문 { "status": "IN_PROGRESS" 또는 "COMPLETED" }. 성공 시 바뀐 과목 하나(GET /courses의 과목과 같은 모양), 상태 값이 틀리면 400, 없는 과목은 404) |
-| DELETE | /api/student/credit/courses/{courseId} | 과목 삭제, 그 과목의 평가도 함께 삭제 (성공 시 204, 본문 없음. 없는 과목은 404) |
-| POST | /api/student/credit/courses/{courseId}/assessments | 평가 점수 입력 |
-| PUT | /api/student/credit/courses/{courseId}/assessments/{assessmentId} | 평가 점수 수정 (그 과목의 평가가 아니면 404) |
-| DELETE | /api/student/credit/courses/{courseId}/assessments/{assessmentId} | 평가 삭제 (성공 시 204, 본문 없음. 그 과목의 평가가 아니면 404) |
-
-### 응답 예시: GET /summary
-```json
-{
-  "graduationCredits": 192,
-  "completedCredits": 32,
-  "inProgressCredits": 32,
-  "remainingCredits": 128,
-  "subjectCredits": { "earned": 29, "required": 174 },
-  "creativeCredits": { "earned": 3, "required": 18 },
-  "alert": { "riskCount": 1, "cautionCount": 1 }
-}
-```
-
-### 응답 예시: GET /courses?gradeYear=1&term=2
-```json
-{
-  "gradeYear": 1,
-  "term": 2,
-  "totalCredits": 32,
-  "courses": [
-    {
-      "id": "1",
-      "name": "공통수학2",
-      "courseType": "COMMON",
-      "credits": 4,
-      "status": "IN_PROGRESS",
-      "achievementRate": 46.0,
-      "riskLevel": "CAUTION"
-    },
-    {
-      "id": "2",
-      "name": "통합과학2",
-      "courseType": "COMMON",
-      "credits": 4,
-      "status": "IN_PROGRESS",
-      "achievementRate": 35.0,
-      "riskLevel": "RISK",
-      "requiredAverage": 45.0
-    }
-  ]
-}
-```
-riskLevel 값: NORMAL / CAUTION / RISK / NO_DATA. achievementRate가 없으면(미입력) null.
-
-### 응답 예시: GET /required-courses
-아직 이수하지 않은(status가 COMPLETED가 아닌) 공통과목 목록이다. courses의 각 항목은 GET /courses 응답의 과목과 같은 모양이다.
-```json
-{
-  "remainingCount": 7,
-  "courses": [
-    {
-      "id": "11",
-      "name": "공통국어2",
-      "courseType": "COMMON",
-      "credits": 4,
-      "status": "IN_PROGRESS",
-      "achievementRate": 78.0,
-      "riskLevel": "NORMAL"
-    },
-    {
-      "id": "12",
-      "name": "공통수학2",
-      "courseType": "COMMON",
-      "credits": 4,
-      "status": "IN_PROGRESS",
-      "achievementRate": 46.0,
-      "riskLevel": "CAUTION"
-    },
-    {
-      "id": "16",
-      "name": "통합과학2",
-      "courseType": "COMMON",
-      "credits": 4,
-      "status": "IN_PROGRESS",
-      "achievementRate": 35.0,
-      "riskLevel": "RISK",
-      "requiredAverage": 45.0
-    }
-  ]
-}
-```
-(예시는 7과목 중 3과목만 적음)
-
-### 응답 예시: GET /catalog?query=공통국어
-과목명 부분 일치(공백 무시) 검색. 표준 과목 배열을 돌려준다(최대 10개). 검색어가 비어 있으면 빈 배열이다.
-```json
-[
-  { "id": "1", "name": "공통국어1", "subjectGroup": "국어", "courseType": "COMMON", "credits": 4 },
-  { "id": "2", "name": "공통국어2", "subjectGroup": "국어", "courseType": "COMMON", "credits": 4 }
-]
-```
-
-### 요청 예시: POST /courses
-목록 과목: catalogId를 보내면 과목명과 유형은 과목 목록 값을 쓴다. 학점은 학교 편성에 맞춰 바꿀 수 있어 요청 값을 쓴다.
-```json
-{
-  "gradeYear": 1,
-  "term": 2,
-  "catalogId": "15",
-  "credits": 4,
-  "status": "IN_PROGRESS",
-  "writtenWeight": 60,
-  "performanceWeight": 40,
-  "gradeDisplay": "ACHIEVEMENT_AND_RANK"
-}
-```
-
-목록에 없는 과목(직접 입력): catalogId는 null이고 customName, courseType을 보낸다.
-```json
-{
-  "gradeYear": 2,
-  "term": 1,
-  "catalogId": null,
-  "customName": "AI 기초",
-  "courseType": "CAREER",
-  "credits": 2,
-  "status": "IN_PROGRESS",
-  "writtenWeight": 0,
-  "performanceWeight": 100,
-  "gradeDisplay": "THREE_LEVEL"
-}
-```
-- 창체(courseType CREATIVE)는 평가가 없어 writtenWeight, performanceWeight를 0으로 저장하고 gradeDisplay는 null이다.
-- 검증: 과목명 필수, 같은 학기에 같은 과목명(공백·대소문자 무시) 중복 불가, 학점 1 이상 정수, 창체가 아니면 반영 비율 합 100.
-- 성공 응답: 만든 과목 하나(GET /courses의 과목과 같은 모양). 평가가 없으므로 achievementRate는 null, riskLevel은 NO_DATA(창체는 NORMAL).
-- 실패 응답(임시, 오류 형식 미정): 400 { "message": "입력값을 확인하세요.", "fieldErrors": { "name": "같은 학기에 이미 등록된 과목입니다." } }
+| GET | /api/student/credit/courses/{courseId} | 과목 상세(평가 목록 포함) |
+| PATCH | /api/student/credit/courses/{courseId} | 과목 이수 상태 변경 |
+| DELETE | /api/student/credit/courses/{courseId} | 과목 삭제 (평가도 함께) |
+| POST | /api/student/credit/courses/{courseId}/assessments | 평가 추가 |
+| PUT | /api/student/credit/courses/{courseId}/assessments/{assessmentId} | 평가 수정 |
+| DELETE | /api/student/credit/courses/{courseId}/assessments/{assessmentId} | 평가 삭제 |
 
 ## 9. 시연용 데이터
 

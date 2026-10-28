@@ -14,14 +14,21 @@
 - [x] 평가 점수 입력 (mock) (과목 행 클릭 → 오른쪽 패널. 위 headless 확인에 포함: 통합과학2에 수행 20% 80점 추가 → 48% 주의, 배너 위험 0 · 주의 2, 득점 > 만점은 저장 안 됨)
 - [x] 평가 삭제 (mock) (실행 확인: npm test 29개 통과, headless Edge 45개 항목 통과. 통합과학2에 추가한 평가를 삭제하면 48% 주의 → 35% 이수 위험, 마지막 평가 삭제 시 미입력)
 - [x] 과목 이수 상태 변경과 과목 삭제 (mock) (실행 확인: npm test 62개 통과, npm run build·npm run lint 통과, headless Edge 32개 항목 통과(기존 점수 입력·삭제 45개, 과목 등록 39개도 다시 통과))
+- [x] API 명세 문서 (docs/api-contract.md. 실행 확인: npm test 68개 통과 — 문서의 요청 예시를 mock에 그대로 보내 응답 예시와 상태 코드·키·값이 같은지 비교하는 contract.test.ts 포함)
 
 ## 지금 하는 것
-- DB 테이블 V1 작성 준비 (저장소 초기 세팅, 문서, 백엔드·프론트 뼈대, 큰 틀 레이아웃, 학점 현황 화면(mock), 이수 위험 계산과 점수 입력·삭제(mock), 과목 등록 모달(mock), 과목 상태 변경·삭제(mock)는 완료. 프론트는 아직 mock 데이터로만 동작)
+- DB 테이블 V1 작성 준비 (저장소 초기 세팅, 문서, 백엔드·프론트 뼈대, 큰 틀 레이아웃, 학점 현황 화면(mock), 이수 위험 계산과 점수 입력·삭제(mock), 과목 등록 모달(mock), 과목 상태 변경·삭제(mock), API 명세 문서는 완료. 프론트는 아직 mock 데이터로만 동작)
 
 ## 다음 할 일 (현재 기준)
-- DB 테이블 V1, 시연용 초기 데이터 V2 작성 (PRD 7장, 9장). 표준 과목 목록 seed는 frontend/src/mocks/catalog.ts(시연용 30개)를 옮긴다. 평가 점수 seed는 frontend/src/mocks/creditStore.ts의 시연 데이터(1학년 1학기 10과목, 2학기 10과목과 평가)를 그대로 옮기면 PRD 9장 숫자가 나온다
-- 백엔드 API 구현: summary, courses, required-courses, courses/{courseId}, catalog, 과목 등록 POST /courses, 과목 상태 변경 PATCH /courses/{courseId}, 과목 삭제 DELETE /courses/{courseId}, 평가 POST/PUT/DELETE. 응답 모양은 frontend/src/modules/credit/types.ts와 맞추고, 계산 규칙은 frontend/src/modules/credit/domain/(completion.ts, rules.ts, validation.ts, courseRegistration.ts)과 같게 서비스에 구현한다(테스트 케이스는 domain/completion.test.ts 참고)
-- API 계약 문서 docs/api-contract.md 작성 (다음 작업에서 만들기로 함. 이번에는 만들지 않음)
+백엔드 구현 순서. API 모양과 규칙은 docs/api-contract.md가 기준이다(예시 JSON은 mock 실제 응답이고 contract.test.ts로 확인됨).
+1. DB 테이블 V1 (database/migrations/V1__…sql): PRD 7장의 credit_course_catalog, credit_student_course(student_id 포함), credit_assessment, credit_completion_rule, credit_graduation_rule. 착수 전에 "미정"의 "주의 상한(50%) 저장 위치"를 정한다
+2. 시연용 초기 데이터 V2: 졸업 기준(192/174/18), 이수 기준(최소 출석률 66.67, 공통 최소 성취율 40), 표준 과목 30개(frontend/src/mocks/catalog.ts와 같은 순서, ID 1~30), 데모 학생 과목 20개(1학년 1학기 ID 1~10, 2학기 ID 11~20)와 평가 44개(ID 1~44, frontend/src/mocks/creditStore.ts와 같은 순서). 같은 순서로 넣어야 api-contract.md 예시의 ID(통합과학2 = 16, 새 평가 = 45 등)와 맞는다
+3. 공통: 데모 학생 고정 처리, 오류 응답 형식(400 { message, fieldErrors }, 404 { message, fieldErrors: {} }), 성공 코드(200/201/204)
+4. 계산 서비스: 성취율, 출석률, 위험 단계 7단계, 필요 평균(api-contract.md 5장). PRD 6장 테스트 케이스 7개를 백엔드 단위 테스트로 옮긴다(frontend/src/modules/credit/domain/completion.test.ts 참고)
+5. 조회 API: GET summary, GET courses?gradeYear=&term=, GET required-courses, GET catalog?query=, GET courses/{courseId}
+6. 과목 변경 API: POST courses(검증 포함), PATCH courses/{courseId}(이수 상태 변경), DELETE courses/{courseId}(평가도 함께 삭제)
+7. 평가 API: POST courses/{courseId}/assessments, PUT·DELETE courses/{courseId}/assessments/{assessmentId}(그 과목의 평가가 아니면 404)
+8. 연결 확인: VITE_USE_MOCK=false로 프론트를 띄워 화면 확인, api-contract.md 예시와 실제 응답 비교
 
 ## 막힌 것
 - 없음
@@ -33,8 +40,10 @@
 - 브랜치와 PR 규칙
 - 과목 목록(약 290개)의 출처와 이용 조건
 - 필수 이수 학점 구조 (교육부 원문 확인 필요)
-- 점수 입력 패널용 과목 상세 API: PRD 8장에 없어 임시로 GET /api/student/credit/courses/{courseId} (과목 정보 + writtenWeight, performanceWeight, assessments)를 mock에 만듦
-- API 오류 응답 형식 (PRD 8장: 뼈대 생성 후 정함). mock은 임시로 검증 실패 시 400 + { message, fieldErrors: { 항목: 문구 } } 모양으로 오류를 냄
+- 주의 상한(50%) 저장 위치: PRD 7장 credit_completion_rule에는 min_attendance, min_achievement만 있고 주의 상한 컬럼이 없음(프론트는 domain/rules.ts의 cautionBelowRate). DB V1 전에 컬럼 추가 여부를 정해야 함
+- 생성 성공 상태 코드: mock에는 상태 코드가 없어 api-contract.md에 POST 201로 적음(클라이언트는 2xx를 모두 성공으로 처리해 200이어도 동작함). 확정 필요
+- 이수 완료 과목 응답의 riskLevel·requiredAverage: 지금 API(mock)는 이수 상태와 관계없이 계산값을 돌려주고 화면이 수강 중 과목에만 보여 줌. API에서 뺄지는 정하지 않음
+- 로그인 도입 후 다른 학생의 과목·평가 ID로 요청했을 때의 응답(404 또는 403)
 - 배포 시 프론트 서빙 방식 (새로고침 시 index.html로 돌려주는 설정은 개발 서버에서만 확인함)
 
 ## 실행 방법
@@ -59,6 +68,31 @@
 - 결정과 이유:
 - 막힌 점과 해결:
 - 다음 할 일:
+
+### 2026-10-28 — API 명세 문서 추가
+- 한 일:
+  1) docs/api-contract.md 새로 작성: 공통 규칙(경로 접두사, camelCase, 문자열 ID, 날짜, 성공 코드 200/201/204, 오류 400 { message, fieldErrors }·404), 값과 화면 문구 대응(riskLevel, courseType, status, gradeDisplay, kind), 응답 객체 표(CreditSummary, SemesterCourses, RequiredCourses, CourseItem, CourseDetail, Assessment, CatalogItem), 엔드포인트 11개(GET summary, GET courses?gradeYear=&term=, GET required-courses, GET catalog?query=, POST courses, GET/PATCH/DELETE courses/{courseId}, POST courses/{courseId}/assessments, PUT·DELETE courses/{courseId}/assessments/{assessmentId})마다 요청·응답 예시, 검증 규칙과 오류 문구, 실패 응답. 계산 규칙(성취율·출석률·필요 평균 식, 7단계 판정 순서, 저장하지 않고 응답 때 계산, API는 이수 상태와 관계없이 계산값을 주고 화면·배너는 수강 중 과목만 씀)과 구현 참고 파일, DB 대응 표(응답 필드 ← PRD 7장 테이블·컬럼, 학생 구분은 credit_student_course.student_id, 데모 학생 1명 고정)
+  2) 예시는 지어내지 않고 mock을 실제로 호출한 결과를 붙임: frontend/src/mocks/contractScenario.ts에 호출 순서 22단계(조회 → 등록 → 상태 변경 → 평가 추가·수정·삭제 → 과목 삭제)를 두고 그 결과 JSON을 문서에 넣음. 문서의 각 예시에 <!-- contract:id 상태코드 -->, <!-- contract-request:id --> 표시를 붙임
+  3) frontend/src/mocks/contract.test.ts 추가: 문서의 요청 예시를 그대로 mock에 보내고, 상태 코드와 응답 본문이 문서 예시와 키·값까지 같은지 비교. 문서의 예시 표시와 호출 순서가 1:1인지도 확인
+  4) PRD 8장을 "API 요약"으로 줄이고 상세는 api-contract.md로 연결(예시·검증 문구는 api-contract.md로 옮기고 8장에서 지움)
+  5) types.ts 주석 3곳을 api-contract.md와 맞춤(파일 머리 설명, requiredAverage 조건, CourseDetail 설명). 필드 변경은 없음
+- 바뀐 파일: docs/api-contract.md(신규), docs/PRD.md(8장), docs/PROGRESS.md, frontend/src/mocks/contractScenario.ts(신규), frontend/src/mocks/contract.test.ts(신규), frontend/src/modules/credit/types.ts(주석만)
+- 확인 방법과 결과:
+  1) npm test → 7개 파일, 68개 모두 통과(새로 2개: 예시 표시와 호출 순서 1:1, 22단계 응답 비교). 처음 돌렸을 때 "update-assessment-not-found: 요청 예시가 문서에 없음"으로 실패 → 문서에 그 요청 예시를 추가해 통과
+  2) 테스트가 실제로 어긋남을 잡는지 확인: 문서의 47.85714285714286을 48로 일부러 바꿔 돌리면 course-detail-after-add에서 실패, 되돌리면 통과
+  3) npm run build 통과(테스트 파일 포함 타입 검사), npm run lint 경고 0개
+  4) types.ts와 문서 대조(직접 읽어서): CreditSummary, CourseItem, SemesterCourses, RequiredCourses, Assessment, AssessmentInput, CatalogItem, CourseRegistrationInput, CourseDetail의 필드 이름·타입·선택 여부가 문서 3장·4장 표와 모두 같음. 다른 점: PATCH 요청 본문 { status }는 types.ts에 이름 붙은 타입이 없고 api.ts에서 바로 만듦(동작에는 차이 없음). 오류 본문 { message, fieldErrors }는 types.ts가 아니라 src/api/errors.ts의 ApiError로 다룸
+  확인 못 함: 실제 백엔드 응답(아직 없음)
+- 결정과 이유:
+  - 학기별 과목 조회는 mock·PRD대로 ?gradeYear=1&term=2 (사용자 결정)
+  - 예시 JSON은 mock 응답을 그대로 쓰되 평가 객체만 id를 앞에 두도록 키 순서를 바꿈(테스트는 키 순서를 보지 않음)
+  - mock에는 HTTP 상태 코드가 없어서 문서에 조회·수정 200, 생성 201, 삭제 204로 적고 201은 "미정"에 적음
+  - 요청 문구의 "위험·주의 표시와 필요 평균은 수강 중 과목에만"은 mock 확인 결과 화면 동작이고, API 응답은 이수 완료 과목에도 riskLevel·requiredAverage를 그대로 줌 → 문서에 그대로 적고 "미정"에 적음
+  - PRD 7장 credit_student_course에 student_id가 이미 있어 7장은 고치지 않음. 평가는 과목 FK로 학생이 정해짐
+  - 주의 상한(50%)을 둘 컬럼이 PRD 7장에 없음 → 문서에는 설정값으로만 적고 "미정"에 적음
+  - "미정"에서 과목 상세 API, API 오류 응답 형식 두 항목을 지움(문서로 확정)
+- 막힌 점과 해결: 문서 초안의 "출석률 미달 RISK에는 필요 평균을 넣지 않는다"가 코드와 다름(성취율도 40 미만이면 넣음)을 코드 대조로 찾아 고침
+- 다음 할 일: "다음 할 일"의 백엔드 구현 순서 1번(DB 테이블 V1)부터
 
 ### 2026-10-28 — 평가 수정 경로를 과목 아래로 통일
 - 한 일: 평가 수정 API를 PUT /student/credit/assessments/{assessmentId}에서 PUT /student/credit/courses/{courseId}/assessments/{assessmentId}로 바꿈(평가 추가·삭제와 같은 모양). 그 과목의 평가가 아니면 404 "평가를 찾을 수 없습니다.", 없는 과목이면 404 "과목을 찾을 수 없습니다.". mock 핸들러, api.ts의 updateAssessment(courseId, assessmentId, input), 점수 입력 폼, PRD 8장 API 표를 고침
