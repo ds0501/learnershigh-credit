@@ -10,14 +10,15 @@
 - [x] 큰 틀 레이아웃 (실행 확인: /credit, /tasks, /records, /grades 각각 200, headless Edge로 각 주소를 직접 열어 제목과 활성 메뉴가 맞게 그려지는 것 확인, 백엔드를 켠 상태에서 http://localhost:5173/api/health → 200 {"status":"ok"})
 - [x] 학점 현황 화면 (mock) (실행 확인: npm run build 통과, 개발 서버 + headless Edge(CDP)로 /credit 텍스트 18개 항목 확인, 2학년 1학기 탭 클릭 시 "등록된 과목이 없습니다", VITE_USE_MOCK=false + 백엔드 꺼짐에서 오류 상태 확인)
 - [ ] 과목 등록 모달
-- [ ] 이수 위험 계산 + 표시
+- [x] 이수 위험 계산 + 표시 (mock) (실행 확인: npm test 26개 통과(PRD 6장 케이스 7개 포함), npm run build·npm run lint 통과, headless Edge(CDP)로 32개 항목 확인)
+- [x] 평가 점수 입력 (mock) (과목 행 클릭 → 오른쪽 패널. 위 headless 확인에 포함: 통합과학2에 수행 20% 80점 추가 → 48% 주의, 배너 위험 0 · 주의 2, 득점 > 만점은 저장 안 됨)
 
 ## 지금 하는 것
-- DB 테이블 V1 작성 준비 (저장소 초기 세팅, 문서, 백엔드·프론트 뼈대, 큰 틀 레이아웃, 학점 현황 화면(mock)은 완료)
+- DB 테이블 V1 작성 준비 (저장소 초기 세팅, 문서, 백엔드·프론트 뼈대, 큰 틀 레이아웃, 학점 현황 화면(mock), 이수 위험 계산과 점수 입력(mock)은 완료. 프론트는 아직 mock 데이터로만 동작)
 
 ## 다음 할 일 (현재 기준)
-- DB 테이블 V1, 시연용 초기 데이터 V2 작성 (PRD 7장, 9장)
-- 학점 현황 API 3개 백엔드 구현 (summary, courses, required-courses. 응답 모양은 frontend/src/modules/credit/types.ts와 맞춘다)
+- DB 테이블 V1, 시연용 초기 데이터 V2 작성 (PRD 7장, 9장). 평가 점수 seed는 frontend/src/mocks/creditStore.ts의 시연 데이터(1학년 1학기 10과목, 2학기 10과목과 평가)를 그대로 옮기면 PRD 9장 숫자가 나온다
+- 백엔드 API 구현: summary, courses, required-courses, courses/{courseId}, 평가 POST/PUT. 응답 모양은 frontend/src/modules/credit/types.ts와 맞추고, 계산 규칙은 frontend/src/modules/credit/domain/(completion.ts, rules.ts, validation.ts)과 같게 서비스에 구현한다(테스트 케이스는 domain/completion.test.ts 참고)
 - 과목 등록 모달 (PRD F2)
 
 ## 막힌 것
@@ -32,8 +33,10 @@
 - "주의" 상태 기준값 (임시: 성취율 40% 이상 50% 미만)
 - 과목 목록(약 290개)의 출처와 이용 조건
 - 필수 이수 학점 구조 (교육부 원문 확인 필요)
-- GET /required-courses 응답 모양 (PRD 8장에 예시가 없어 임시로 { remainingCount, courses: 과목 목록(courses 응답의 과목과 같은 모양) }으로 정함)
-- 1학년 1학기 이수 완료 과목 구성 (PRD 9장: 목업 숫자 교과 29, 창체 3에 맞춰 정한다고만 되어 있음. mock에는 요약 숫자만 넣고 과목은 없음)
+- 1학년 1학기 이수 완료 과목 구성 (PRD 9장: 목업 숫자 교과 29, 창체 3에 맞춰 정한다고만 되어 있음. mock에는 시연용 임의 값으로 공통 7과목 24학점 + 일반선택 2과목(체육 2, 미술 3) + 창체 3학점을 넣음)
+- 점수 입력 패널용 과목 상세 API: PRD 8장에 없어 임시로 GET /api/student/credit/courses/{courseId} (과목 정보 + writtenWeight, performanceWeight, assessments)를 mock에 만듦
+- API 오류 응답 형식 (PRD 8장: 뼈대 생성 후 정함). mock은 임시로 검증 실패 시 400 + { message, fieldErrors: { 항목: 문구 } } 모양으로 오류를 냄
+- 출석률 미달과 "미입력"이 겹칠 때의 판정 (PRD F4는 평가가 없으면 위험 판정을 하지 않는다고 했지만, 6장 테스트 6은 선택과목 출석률 60%를 이수 위험으로 봄. 임시로 출석률 미달을 먼저 보고 이수 위험으로 판정. 지금은 출석 데이터가 없어 출석률이 항상 100%라 화면에는 영향 없음)
 - 배포 시 프론트 서빙 방식 (새로고침 시 index.html로 돌려주는 설정은 개발 서버에서만 확인함)
 
 ## 실행 방법
@@ -46,6 +49,8 @@
 - 프론트: `cd frontend` 후 `npm install`(처음 한 번), `npm run dev` → http://localhost:5173. `/api`는 localhost:8080으로 프록시된다
 - mock 모드: 저장소 루트 `.env`의 `VITE_USE_MOCK` (없거나 true면 mock, false면 실제 API). 바꾸면 개발 서버 재시작
 - 프론트 빌드: `cd frontend` 후 `npm run build` (타입 검사 포함)
+- 프론트 단위 테스트: `cd frontend` 후 `npm test` (Vitest). 린트: `npm run lint`
+- mock 데이터는 frontend/src/mocks/creditStore.ts의 메모리 저장소에 있다. 점수를 입력해도 새로고침하면 처음 상태로 돌아간다(정상)
 
 ## 작업 로그 (최신이 위)
 형식:
@@ -56,6 +61,46 @@
 - 결정과 이유:
 - 막힌 점과 해결:
 - 다음 할 일:
+
+### 2026-10-28 — 이수 위험 계산과 점수 입력(mock) 추가
+- 한 일:
+  1) 계산 모듈: frontend/src/modules/credit/domain/에 화면·API와 무관한 순수 함수로 성취율, 출석률, 위험 단계(NORMAL/CAUTION/RISK/NO_DATA), 필요 평균을 PRD 6장대로 구현. 이수 기준(최소 출석률 66.67%, 공통 성취율 40%)과 "주의" 상한(임시 50%), 졸업 학점(192/174/18)은 domain/rules.ts 설정 객체 한 곳에만 둠. 평가 입력 검증(득점 0~만점, 종류별 반영 비율 합 ≤ 그 종류의 반영 비율)도 domain/validation.ts에 두고 폼과 mock이 같이 씀
+  2) Vitest 5.0.5를 개발 의존성으로 추가하고 `npm test` 스크립트 추가. PRD 6장 테스트 케이스 7개를 그대로 옮기고, 추가 규칙·검증·mock 데이터 테스트를 더함(총 26개)
+  3) mock을 평가 데이터 기반으로 바꿈: src/mocks/creditStore.ts 메모리 저장소(과목 + 평가 원본만 있음)에서 summary, courses, required-courses 응답을 계산 모듈로 만듦. 성취율 숫자는 하드코딩하지 않음. 1학년 1학기 이수 완료 10과목(교과 29 + 창체 3) 추가. 평가 추가(POST)·수정(PUT) mock과 점수 입력 패널용 과목 상세(GET /courses/{courseId}) mock 추가. mock 클라이언트가 메서드와 경로 변수(:courseId)를 다루도록 바꿈
+  4) 점수 입력 화면: 과목 표의 행(창체 제외)을 누르면 오른쪽 패널이 열림. 현재 성취율과 상태, 위험 과목이면 필요 평균 안내, 면책 문구, 평가 목록(미입력 표시, 수정 버튼), 평가 추가/수정 폼(종류, 이름, 반영 비율, 만점, 득점, 날짜). 저장하면 요약·경고 배너·필수 과목 배지·과목 표·패널이 다시 계산되어 바뀜. Escape, 바깥 클릭, 닫기 버튼으로 닫힘
+  5) 성취율은 정수로 반올림해 표시하고 판정은 반올림 전 값으로 함. 평가가 없는(또는 모두 미입력인) 과목은 성취율 자리에 "미입력"
+  6) PRD 8장에 GET /required-courses 응답 예시 추가({ remainingCount, courses })
+- 바뀐 파일: frontend/package.json, frontend/package-lock.json(vitest), frontend/src/modules/credit/domain/(rules.ts, types.ts, completion.ts, validation.ts, completion.test.ts 신규), frontend/src/mocks/(creditStore.ts·credit.test.ts 신규, credit.ts, index.ts), frontend/src/api/(client.ts, errors.ts 신규, useAsync.ts), frontend/src/modules/credit/(types.ts, api.ts, labels.ts, CreditPage.tsx, CreditPage.module.css, components/AssessmentDrawer.tsx·AssessmentDrawer.module.css·AssessmentForm.tsx 신규, components/CourseTable.tsx, CourseTable.module.css, RiskAlertBanner.tsx), frontend/src/styles/tokens.css(--color-overlay 추가), docs/PRD.md(8장), README.md, docs/PROGRESS.md
+- 확인 방법과 결과:
+  1) frontend에서 npm test → 2개 파일, 26개 테스트 모두 통과. PRD 6장 케이스 1~7 포함(1: 30% 이수 위험, 2: 45% 주의, 3: 미입력, 4: NULL 제외, 5: 필요 평균 45, 6: 선택과목 출석률 60% 이수 위험, 7: 수행 100% 정상 계산). mock 데이터 테스트에서 요약 숫자, 1학년 2학기 9과목 성취율·상태, 1학년 1학기 합계, 통합과학2 평가 추가 후 48% 주의 확인
+  2) npm run build → 통과(타입 오류 없음). npm run lint(oxlint) → 경고 0개. 출력이 비어 있어서 일부러 debugger 문을 넣은 임시 파일로 린트가 실제로 잡는 것을 확인한 뒤 파일을 지움
+  3) npm run dev(mock) 후 Node 스크립트로 headless Edge를 CDP로 조종해 32개 항목 확인, 모두 통과:
+     - 기존 숫자: 32 / 192학점 이수, 교과 29 / 174학점, 창의적 체험활동 3 / 18학점, 남은 학점 128학점, 표 "통합과학2 공통 4 35% 이수 위험", "공통수학2 공통 4 46% 주의", 배너 "이수 위험 과목 1개 · 주의 1개"와 "남은 평가에서 평균 45점 이상 받아야 이수 기준(40%)을 넘어요"
+     - 1학년 1학기 탭: 10과목 모두 "이수 완료", 학기 합계 32학점
+     - 통합과학2 행 클릭 → 패널 열림, "현재 성취율 35% 이수 위험", 필요 평균 45점 안내, 면책 문구, 평가 2건
+     - 수행, 수행평가 2, 반영 20, 만점 100, 득점 120 입력 후 저장 → "득점은 만점(100점) 이하여야 합니다."와 "입력값을 확인하세요. 저장되지 않았습니다." 표시, 평가 2건 그대로, 패널과 표 모두 35% 이수 위험 그대로
+     - 득점을 80으로 바꿔 저장 → 패널 "현재 성취율 48% 주의", 평가 3건, 표 "통합과학2 공통 4 48% 주의", 배너 "이수 위험 과목 0개 · 주의 2개", 필수 과목 배지 "통합과학2 주의", 폼 칸 비워짐
+     - Escape로 패널 닫힘
+     - 새로고침 → 통합과학2 35% 이수 위험, 배너 "이수 위험 과목 1개 · 주의 1개"로 처음 상태 복귀
+  스크린샷: 1학년 1학기 표, 패널 열림, 득점 오류, 저장 후 화면을 찍어 눈으로 봄(로컬 임시 폴더에만 있고 커밋하지 않음). 전체 페이지를 찍는 방식이라 어두운 덮개가 창 높이까지만 덮인 것처럼 찍히는데, 실제 창에서는 덮개가 화면 전체에 고정됨
+  확인 후 개발 서버 종료(5173 포트 비어 있음 확인)
+  확인 못 함: "미입력" 과목이 화면 표에 나오는 모습(시연 데이터에 평가가 하나도 없는 과목이 없음. 판정은 단위 테스트로만 확인), 필요 평균이 100을 넘을 때의 "남은 평가로는 기준 도달이 어렵습니다" 문구가 화면에 나오는 모습(문구 함수만 있고 시연 데이터로는 안 나옴), 반영 비율 초과 오류가 화면에 나오는 모습(검증 함수는 단위 테스트로 확인), 평가 수정(PUT)을 화면에서 저장하는 동작, 좁은 화면(모바일) 배치, 실제 API(백엔드 없음)
+- 결정과 이유:
+  - 1학년 2학기 평가 구성: 9과목 모두 PRD 9장 성취율이 정확히 나오도록 점수를 정함. 공통수학2와 통합과학2는 지필 60/수행 40이고 입력된 반영 비율 합 50%(지필 중간 30 + 수행 20). 통합과학2는 수행을 20%만 써서 수행 20%를 더 넣을 수 있음. 공통국어2·공통수학2에는 득점이 비어 있는 기말고사(30%)를 넣어 미입력 평가 표시를 볼 수 있게 함. 과학탐구실험2, 운동과 건강, 음악은 수행 100%
+  - 1학년 1학기: 공통 7과목(공통국어1, 공통수학1, 공통영어1 각 4, 한국사1 3, 통합사회1, 통합과학1 각 4, 과학탐구실험1 1 = 24) + 일반선택 2과목(체육 2, 미술 3) + 창체 3. 이름과 점수는 시연용 임의 값
+  - 과목 ID: 1학년 1학기 1~10, 2학기 11~20 (PRD 8장 required-courses 예시의 ID도 이에 맞춤)
+  - 위험 단계 판정 순서: 출석률 미달 → 이수 위험(모든 유형), 창체 → 정상(평가 없음), 성취율 없음 → 미입력, 공통과목만 성취율로 위험/주의 판정. 출석률을 먼저 보는 것은 PRD F4와 6장 테스트 6 사이의 해석이라 "미정"에 적음
+  - 필요 평균은 성취율 미달로 이수 위험인 과목에만 계산해 응답에 넣음(PRD 8장 예시처럼). 화면에서는 "이상 받아야"라서 소수점은 올림해 정수로 표시
+  - 경고 배너 개수는 수강 중인 과목만 셈(이수 완료 과목은 이미 이수했으므로)
+  - 이수 완료 과목도 행을 누르면 패널이 열리고 점수를 고칠 수 있음(막을 근거가 PRD에 없음). 창체 행은 평가가 없어 열리지 않음
+  - 점수 입력 패널은 모달 대신 오른쪽 드로어로 함. 과목 표를 가리지 않고 저장 결과(배너, 표)를 옆에서 바로 볼 수 있어서
+  - 검증은 폼에서 먼저 하고 mock 저장 함수에서도 같은 함수로 다시 함(서버 검증 흉내). 실패하면 400 오류로 항목별 문구를 돌려줌
+  - 저장 후 다시 불러올 때 화면이 "불러오는 중"으로 깜빡이지 않게 useAsync가 다시 불러오는 동안 이전 데이터를 보여주도록 바꿈(학기를 바꿀 때는 기존처럼 로딩 표시)
+  - mock 응답은 structuredClone으로 복사해서 넘김(화면이 저장소 객체를 직접 잡지 않게)
+  - ApiError를 src/api/errors.ts로 분리(mocks와 api/client 사이 순환 import를 피하려고)
+  - 판정용 상수 COMMON_MIN_ACHIEVEMENT(labels.ts)는 지우고 domain/rules.ts의 COMPLETION_RULES를 쓰게 함
+- 막힌 점과 해결: 브라우저 확인 첫 실행에서 3개 실패 → 화면 값은 맞았고(출력에 "48% 주의", "통합과학2 주의"가 찍힘), 확인 스크립트를 셸 heredoc으로 만들면서 정규식의 역슬래시가 빠져 공백 정규화가 안 된 것이 원인. 스크립트를 고쳐 새 페이지에서 처음부터 다시 돌려 32개 모두 통과
+- 다음 할 일: DB 테이블 V1과 시연용 데이터 V2(mock 시연 데이터를 그대로 옮김), 백엔드 API와 계산 서비스(domain/ 규칙과 같게), 과목 등록 모달
 
 ### 2026-10-28 — 학점 현황 화면(mock) 추가
 - 한 일: frontend/src/modules/credit/에 학점 현황 화면을 만듦. 왼쪽은 졸업 학점 진행바(이수 완료/수강 중/남은 학점), 교과·창체 학점, 남은 필수 이수 과목 체크리스트(배지: 수강 중/주의/이수 위험)이고, 오른쪽은 경고 배너, 학기 탭(1-1~3-2), 선택 학기 과목 표(과목명, 유형, 학점, 현재 성취율, 상태)와 학기 합계. "주간 학습" 열은 만들지 않음. 위험 표시가 있는 세 곳(배너, 필수 과목, 과목 표) 아래에 "참고용 예측이며 학교의 공식 판정이 아닙니다" 표시. 로딩/빈 상태/오류(다시 시도 버튼) 상태. PRD 9장 시연 데이터로 mock 작성. API 함수 getSummary, getCourses(gradeYear, term), getRequiredCourses(mock 또는 /api/student/credit/...)

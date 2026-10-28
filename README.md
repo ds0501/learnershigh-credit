@@ -51,3 +51,6 @@ npm run dev
 - `VITE_USE_MOCK`은 저장소 루트의 `.env`에서 읽는다. 값이 `false`일 때만 실제 API를 쓰고, 없거나 `true`면 mock 데이터를 쓴다. 값을 바꾸면 개발 서버를 다시 시작한다.
 - mock 모드에서는 백엔드 없이 화면을 볼 수 있다.
 - 빌드(타입 검사 포함): `npm run build`
+- 단위 테스트(Vitest, 이수 위험 계산과 mock 데이터): `npm test`
+- 린트: `npm run lint`
+- mock 모드의 데이터는 브라우저 메모리에만 있어서, 점수를 입력해도 새로고침하면 처음 시연 데이터로 돌아간다.

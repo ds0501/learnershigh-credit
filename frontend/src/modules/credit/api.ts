@@ -1,5 +1,5 @@
-import { apiGet } from '../../api/client';
-import type { CreditSummary, RequiredCourses, SemesterCourses } from './types';
+import { apiGet, apiRequest } from '../../api/client';
+import type { Assessment, AssessmentInput, CourseDetail, CreditSummary, RequiredCourses, SemesterCourses } from './types';
 
 const BASE = '/student/credit';
 
@@ -13,4 +13,16 @@ export function getCourses(gradeYear: number, term: number) {
 
 export function getRequiredCourses() {
   return apiGet<RequiredCourses>(`${BASE}/required-courses`);
+}
+
+export function getCourseDetail(courseId: string) {
+  return apiGet<CourseDetail>(`${BASE}/courses/${encodeURIComponent(courseId)}`);
+}
+
+export function addAssessment(courseId: string, input: AssessmentInput) {
+  return apiRequest<Assessment>('POST', `${BASE}/courses/${encodeURIComponent(courseId)}/assessments`, { body: input });
+}
+
+export function updateAssessment(assessmentId: string, input: AssessmentInput) {
+  return apiRequest<Assessment>('PUT', `${BASE}/assessments/${encodeURIComponent(assessmentId)}`, { body: input });
 }

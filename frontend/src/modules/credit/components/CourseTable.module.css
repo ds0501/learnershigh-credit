@@ -53,6 +53,20 @@
   background: var(--color-risk-bg);
 }
 
+.selectable {
+  cursor: pointer;
+}
+
+.selectable:hover .name,
+.selectable:focus-visible .name {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
+.noData {
+  color: var(--color-text-subtle);
+}
+
 .risk {
   font-weight: var(--font-weight-bold);
   color: var(--color-risk);

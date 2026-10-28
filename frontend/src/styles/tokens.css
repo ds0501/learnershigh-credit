@@ -10,6 +10,7 @@
   --color-surface-raised: #232732;
   --color-surface-active: #121929;
   --color-border: #333a44;
+  --color-overlay: rgba(0, 0, 0, 0.55);
 
   /* 글자 */
   --color-text: #f2f4f7;

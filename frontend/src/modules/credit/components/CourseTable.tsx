@@ -1,10 +1,16 @@
-import { badgeOf, COURSE_TYPE_LABEL, formatRate } from '../labels';
+import { badgeOf, COURSE_TYPE_LABEL, courseRateText } from '../labels';
 import type { SemesterCourses } from '../types';
 import { StatusBadge } from './StatusBadge';
 import styles from './CourseTable.module.css';
 
+interface CourseTableProps {
+  data: SemesterCourses;
+  // 행을 누르면 그 과목의 평가 입력 패널을 연다
+  onSelect: (courseId: string) => void;
+}
+
 // 선택한 학기의 수강 과목 표
-export function CourseTable({ data }: { data: SemesterCourses }) {
+export function CourseTable({ data, onSelect }: CourseTableProps) {
   return (
     <div className={styles.wrapper}>
       <table className={styles.table}>
@@ -26,12 +32,32 @@ export function CourseTable({ data }: { data: SemesterCourses }) {
         <tbody>
           {data.courses.map((course) => {
             const badge = badgeOf(course.status, course.riskLevel);
+            // 창체는 평가가 없어 입력 패널을 열지 않는다
+            const selectable = course.courseType !== 'CREATIVE';
+            const rowClass = [badge === 'risk' ? styles.riskRow : '', selectable ? styles.selectable : ''].join(' ').trim();
             return (
-              <tr key={course.id} className={badge === 'risk' ? styles.riskRow : undefined}>
+              <tr
+                key={course.id}
+                data-course-id={course.id}
+                className={rowClass || undefined}
+                tabIndex={selectable ? 0 : undefined}
+                aria-label={selectable ? `${course.name} 평가 입력 열기` : undefined}
+                onClick={selectable ? () => onSelect(course.id) : undefined}
+                onKeyDown={
+                  selectable
+                    ? (event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          onSelect(course.id);
+                        }
+                      }
+                    : undefined
+                }
+              >
                 <td className={styles.name}>{course.name}</td>
                 <td className={styles.muted}>{COURSE_TYPE_LABEL[course.courseType]}</td>
                 <td className={styles.number}>{course.credits}</td>
-                <td className={`${styles.number} ${styles[badge] ?? ''}`}>{formatRate(course.achievementRate)}</td>
+                <td className={`${styles.number} ${styles[badge] ?? ''}`}>{courseRateText(course)}</td>
                 <td className={styles.status}>
                   <StatusBadge kind={badge} />
                 </td>

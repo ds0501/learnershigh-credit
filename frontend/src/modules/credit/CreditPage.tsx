@@ -1,8 +1,10 @@
+import { useCallback, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import { useAsync } from '../../api/useAsync';
 import { PageHeader } from '../../layout/PageHeader';
 import { getCourses, getRequiredCourses, getSummary } from './api';
+import { AssessmentDrawer } from './components/AssessmentDrawer';
 import { CourseTable } from './components/CourseTable';
 import { Disclaimer } from './components/Disclaimer';
 import { RequiredCourseList } from './components/RequiredCourseList';
@@ -26,6 +28,19 @@ export function CreditPage() {
   const courses = useAsync(`courses-${selectedTerm.key}`, () => getCourses(selectedTerm.gradeYear, selectedTerm.term));
 
   const selectTerm = (key: string) => setSearchParams({ term: key }, { replace: true });
+
+  // 점수 입력 패널을 연 과목
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+  const closeDrawer = useCallback(() => setSelectedCourseId(null), []);
+  // 평가를 저장하면 요약, 경고 배너, 필수 과목, 과목 표를 모두 다시 받아 계산 결과를 반영한다
+  const { reload: reloadSummary } = summary;
+  const { reload: reloadRequired } = required;
+  const { reload: reloadCourses } = courses;
+  const refreshAll = useCallback(() => {
+    reloadSummary();
+    reloadRequired();
+    reloadCourses();
+  }, [reloadSummary, reloadRequired, reloadCourses]);
 
   return (
     <>
@@ -76,7 +91,8 @@ export function CreditPage() {
               <StateMessage kind="empty" message="등록된 과목이 없습니다." />
             ) : (
               <>
-                <CourseTable data={courses.state.data} />
+                <CourseTable data={courses.state.data} onSelect={setSelectedCourseId} />
+                <p className={styles.hint}>과목을 누르면 평가 점수를 입력할 수 있습니다.</p>
                 {courses.state.data.courses.some((course) => course.riskLevel === 'RISK' || course.riskLevel === 'CAUTION') && (
                   <Disclaimer />
                 )}
@@ -84,6 +100,8 @@ export function CreditPage() {
             ))}
         </section>
       </div>
+
+      {selectedCourseId && <AssessmentDrawer courseId={selectedCourseId} onClose={closeDrawer} onSaved={refreshAll} />}
     </>
   );
 }

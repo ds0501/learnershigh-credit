@@ -261,6 +261,45 @@ effective_year, total_credits(192), subject_credits(174), creative_credits(18)
 ```
 riskLevel 값: NORMAL / CAUTION / RISK / NO_DATA. achievementRate가 없으면(미입력) null.
 
+### 응답 예시: GET /required-courses
+아직 이수하지 않은(status가 COMPLETED가 아닌) 공통과목 목록이다. courses의 각 항목은 GET /courses 응답의 과목과 같은 모양이다.
+```json
+{
+  "remainingCount": 7,
+  "courses": [
+    {
+      "id": "11",
+      "name": "공통국어2",
+      "courseType": "COMMON",
+      "credits": 4,
+      "status": "IN_PROGRESS",
+      "achievementRate": 78.0,
+      "riskLevel": "NORMAL"
+    },
+    {
+      "id": "12",
+      "name": "공통수학2",
+      "courseType": "COMMON",
+      "credits": 4,
+      "status": "IN_PROGRESS",
+      "achievementRate": 46.0,
+      "riskLevel": "CAUTION"
+    },
+    {
+      "id": "16",
+      "name": "통합과학2",
+      "courseType": "COMMON",
+      "credits": 4,
+      "status": "IN_PROGRESS",
+      "achievementRate": 35.0,
+      "riskLevel": "RISK",
+      "requiredAverage": 45.0
+    }
+  ]
+}
+```
+(예시는 7과목 중 3과목만 적음)
+
 ### 요청 예시: POST /courses
 ```json
 {

@@ -44,6 +44,12 @@
   color: var(--color-accent);
 }
 
+.hint {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-subtle);
+}
+
 @media (max-width: 960px) {
   .layout {
     grid-template-columns: 1fr;

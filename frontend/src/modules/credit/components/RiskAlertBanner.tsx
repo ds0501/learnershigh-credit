@@ -1,4 +1,4 @@
-import { COMMON_MIN_ACHIEVEMENT, formatRate } from '../labels';
+import { formatRate, requiredAverageMessage } from '../labels';
 import type { CourseItem, CreditSummary } from '../types';
 import { Disclaimer } from './Disclaimer';
 import styles from './RiskAlertBanner.module.css';
@@ -37,10 +37,7 @@ export function RiskAlertBanner({ alert, courses }: RiskAlertBannerProps) {
         {riskCourses.map((course) => (
           <p key={course.id} className={styles.detail}>
             {course.name} 현재 성취율 {formatRate(course.achievementRate)}.
-            {course.requiredAverage !== undefined &&
-              (course.requiredAverage > 100
-                ? ' 남은 평가로는 기준 도달이 어렵습니다.'
-                : ` 남은 평가에서 평균 ${Number(course.requiredAverage.toFixed(1))}점 이상 받아야 이수 기준(${COMMON_MIN_ACHIEVEMENT}%)을 넘어요.`)}
+            {course.requiredAverage !== undefined && ` ${requiredAverageMessage(course.requiredAverage)}`}
           </p>
         ))}
         {cautionCourses.length > 0 && (
