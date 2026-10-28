@@ -12,13 +12,14 @@
 - [ ] 과목 등록 모달
 - [x] 이수 위험 계산 + 표시 (mock) (실행 확인: npm test 26개 통과(PRD 6장 케이스 7개 포함), npm run build·npm run lint 통과, headless Edge(CDP)로 32개 항목 확인)
 - [x] 평가 점수 입력 (mock) (과목 행 클릭 → 오른쪽 패널. 위 headless 확인에 포함: 통합과학2에 수행 20% 80점 추가 → 48% 주의, 배너 위험 0 · 주의 2, 득점 > 만점은 저장 안 됨)
+- [x] 평가 삭제 (mock) (실행 확인: npm test 29개 통과, headless Edge 45개 항목 통과. 통합과학2에 추가한 평가를 삭제하면 48% 주의 → 35% 이수 위험, 마지막 평가 삭제 시 미입력)
 
 ## 지금 하는 것
-- DB 테이블 V1 작성 준비 (저장소 초기 세팅, 문서, 백엔드·프론트 뼈대, 큰 틀 레이아웃, 학점 현황 화면(mock), 이수 위험 계산과 점수 입력(mock)은 완료. 프론트는 아직 mock 데이터로만 동작)
+- DB 테이블 V1 작성 준비 (저장소 초기 세팅, 문서, 백엔드·프론트 뼈대, 큰 틀 레이아웃, 학점 현황 화면(mock), 이수 위험 계산과 점수 입력·삭제(mock)는 완료. 프론트는 아직 mock 데이터로만 동작)
 
 ## 다음 할 일 (현재 기준)
 - DB 테이블 V1, 시연용 초기 데이터 V2 작성 (PRD 7장, 9장). 평가 점수 seed는 frontend/src/mocks/creditStore.ts의 시연 데이터(1학년 1학기 10과목, 2학기 10과목과 평가)를 그대로 옮기면 PRD 9장 숫자가 나온다
-- 백엔드 API 구현: summary, courses, required-courses, courses/{courseId}, 평가 POST/PUT. 응답 모양은 frontend/src/modules/credit/types.ts와 맞추고, 계산 규칙은 frontend/src/modules/credit/domain/(completion.ts, rules.ts, validation.ts)과 같게 서비스에 구현한다(테스트 케이스는 domain/completion.test.ts 참고)
+- 백엔드 API 구현: summary, courses, required-courses, courses/{courseId}, 평가 POST/PUT/DELETE. 응답 모양은 frontend/src/modules/credit/types.ts와 맞추고, 계산 규칙은 frontend/src/modules/credit/domain/(completion.ts, rules.ts, validation.ts)과 같게 서비스에 구현한다(테스트 케이스는 domain/completion.test.ts 참고)
 - 과목 등록 모달 (PRD F2)
 
 ## 막힌 것
@@ -57,6 +58,26 @@
 - 결정과 이유:
 - 막힌 점과 해결:
 - 다음 할 일:
+
+### 2026-10-28 — 평가 삭제 추가
+- 한 일: 점수 입력 패널의 평가 목록 각 행에 "수정" 옆 "삭제" 추가. 브라우저 confirm 창 대신 2단계 방식: "삭제"를 누르면 그 행이 "(평가 이름) 정말 삭제할까요? [삭제] [취소]"로 바뀜. 삭제하면 패널(목록, 성취율, 위험 표시, 필요 평균 안내)과 학점 현황(요약, 경고 배너, 필수 과목 배지, 과목 표)을 다시 불러와 다시 계산된 값으로 바뀜. 수정 중인 평가를 지우면 폼이 "평가 추가"로 돌아감. mock API DELETE /student/credit/courses/{courseId}/assessments/{assessmentId}(성공 시 본문 없음, 그 과목의 평가가 아니면 404) 추가, PRD 8장 API 표에 추가
+- 바뀐 파일: frontend/src/mocks/creditStore.ts(removeAssessment), frontend/src/mocks/credit.ts(DELETE 핸들러), frontend/src/mocks/credit.test.ts(삭제 테스트 3개), frontend/src/api/client.ts(DELETE 메서드, 204 처리), frontend/src/modules/credit/api.ts(deleteAssessment), frontend/src/modules/credit/components/AssessmentDrawer.tsx, AssessmentDrawer.module.css, docs/PRD.md(8장), docs/PROGRESS.md
+- 확인 방법과 결과:
+  1) npm test → 29개 모두 통과. 새 테스트: 통합과학2에서 수행평가 2를 삭제하면 48% → 35% 이수 위험, 필요 평균 45, 배너 위험 1 · 주의 1로 복귀 / 다른 과목의 평가 ID로 삭제하면 404 / 공통영어2의 평가 2건을 모두 삭제하면 성취율 null, NO_DATA
+  2) npm run build 통과, npm run lint 경고 0개
+  3) npm run dev(mock) 후 headless Edge(CDP) 확인 45개 모두 통과(기존 32개 + 삭제 13개):
+     - "삭제" 클릭 → 행이 "수행평가 2 정말 삭제할까요?"와 [삭제] [취소]로 바뀜. [취소] → 원래 행, 평가 3건 그대로
+     - "수정" 클릭으로 폼이 "평가 수정: 수행평가 2"가 된 상태에서 삭제 → 평가 2건, 패널 "현재 성취율 35% 이수 위험", "남은 평가에서 평균 45점 이상 받아야 이수 기준(40%)을 넘어요", 폼 제목 "평가 추가", 표 "통합과학2 공통 4 35% 이수 위험", 배너 "이수 위험 과목 1개 · 주의 1개"와 45점 안내 (추가 전 값으로 복귀)
+     - 공통영어2의 평가 2건을 모두 삭제 → 패널 "등록된 평가가 없습니다", 성취율 "미입력", 표 "공통영어2 공통 4 미입력 미입력"(성취율, 배지)
+     - 새로고침 → 통합과학2 35% 이수 위험, 배너 1 · 1, 공통영어2 72%로 처음 상태
+  스크린샷을 찍어 확인 행과 미입력 화면을 눈으로 봄(로컬 임시 폴더, 커밋 안 함). 확인 후 개발 서버 종료(5173 포트 비어 있음)
+  확인 못 함: 삭제가 실패했을 때 오류 문구가 나오는 모습(mock은 존재하는 평가 삭제에 실패하지 않음), 좁은 화면 배치, 실제 API
+- 결정과 이유:
+  - 확인 행은 행 전체(6칸)를 한 칸으로 합쳐 문구와 버튼을 보여줌. 다른 행의 수정/삭제는 그대로 둠
+  - 삭제 API는 PRD 8장 PUT(/assessments/{id})과 달리 요청대로 과목 경로 아래(/courses/{courseId}/assessments/{assessmentId})에 둠. 과목이 맞지 않으면 404
+  - 실제 API 모드에서 204 응답은 본문을 읽지 않고 undefined로 돌려주게 클라이언트를 고침
+- 막힌 점과 해결: 없음
+- 다음 할 일: DB 테이블 V1과 시연용 데이터 V2, 백엔드 API와 계산 서비스, 과목 등록 모달
 
 ### 2026-10-28 — 미정 항목 정리
 - 한 일: 확정된 4개를 PRD에 반영하고 PROGRESS "미정"에서 지움(나머지 미정 항목은 그대로)

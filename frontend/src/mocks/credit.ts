@@ -10,6 +10,7 @@ import {
   findCourse,
   insertAssessment,
   listCourses,
+  removeAssessment,
   replaceAssessment,
   type StoredAssessment,
   type StoredCourse,
@@ -124,6 +125,15 @@ function updateAssessment(assessmentId: string, body: unknown) {
   return toAssessment(replaceAssessment(assessmentId, checkInput(course, body, assessmentId))!);
 }
 
+// 응답 본문 없음(204)
+function deleteAssessment(courseId: string, assessmentId: string) {
+  const course = requireCourse(courseId);
+  const existing = findAssessment(assessmentId);
+  if (!existing || existing.courseId !== course.id) throw new ApiError(404, '평가를 찾을 수 없습니다.');
+  removeAssessment(assessmentId);
+  return null;
+}
+
 export const creditMockHandlers: Record<string, MockHandler> = {
   'GET /student/credit/summary': () => summary(),
   'GET /student/credit/courses': ({ params }) => semesterCourses(Number(params.gradeYear), Number(params.term)),
@@ -131,4 +141,6 @@ export const creditMockHandlers: Record<string, MockHandler> = {
   'GET /student/credit/required-courses': () => requiredCourses(),
   'POST /student/credit/courses/:courseId/assessments': ({ pathParams, body }) => addAssessment(pathParams.courseId, body),
   'PUT /student/credit/assessments/:assessmentId': ({ pathParams, body }) => updateAssessment(pathParams.assessmentId, body),
+  'DELETE /student/credit/courses/:courseId/assessments/:assessmentId': ({ pathParams }) =>
+    deleteAssessment(pathParams.courseId, pathParams.assessmentId),
 };

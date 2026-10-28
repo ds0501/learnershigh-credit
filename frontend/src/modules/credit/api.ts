@@ -23,6 +23,13 @@ export function addAssessment(courseId: string, input: AssessmentInput) {
   return apiRequest<Assessment>('POST', `${BASE}/courses/${encodeURIComponent(courseId)}/assessments`, { body: input });
 }
 
+export function deleteAssessment(courseId: string, assessmentId: string) {
+  return apiRequest<void>(
+    'DELETE',
+    `${BASE}/courses/${encodeURIComponent(courseId)}/assessments/${encodeURIComponent(assessmentId)}`,
+  );
+}
+
 export function updateAssessment(assessmentId: string, input: AssessmentInput) {
   return apiRequest<Assessment>('PUT', `${BASE}/assessments/${encodeURIComponent(assessmentId)}`, { body: input });
 }

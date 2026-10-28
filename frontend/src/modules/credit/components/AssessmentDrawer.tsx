@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { useAsync } from '../../../api/useAsync';
-import { getCourseDetail } from '../api';
+import { deleteAssessment, getCourseDetail } from '../api';
 import { ASSESSMENT_KIND_LABEL, badgeOf, COURSE_TYPE_LABEL, formatRate, requiredAverageMessage } from '../labels';
 import type { CourseDetail } from '../types';
 import { AssessmentForm } from './AssessmentForm';
@@ -38,7 +38,28 @@ function CourseStatus({ course }: { course: CourseDetail }) {
   );
 }
 
-function AssessmentList({ course, editingId, onEdit }: { course: CourseDetail; editingId?: string; onEdit: (id: string) => void }) {
+interface AssessmentListProps {
+  course: CourseDetail;
+  editingId?: string;
+  // 삭제 확인 중인 평가
+  confirmingId?: string;
+  deleting: boolean;
+  onEdit: (id: string) => void;
+  onAskDelete: (id: string) => void;
+  onConfirmDelete: (id: string) => void;
+  onCancelDelete: () => void;
+}
+
+function AssessmentList({
+  course,
+  editingId,
+  confirmingId,
+  deleting,
+  onEdit,
+  onAskDelete,
+  onConfirmDelete,
+  onCancelDelete,
+}: AssessmentListProps) {
   if (course.assessments.length === 0) {
     return <p className={styles.empty}>등록된 평가가 없습니다.</p>;
   }
@@ -62,26 +83,73 @@ function AssessmentList({ course, editingId, onEdit }: { course: CourseDetail; e
           </tr>
         </thead>
         <tbody>
-          {course.assessments.map((assessment) => (
-            <tr key={assessment.id} className={assessment.id === editingId ? styles.editingRow : undefined}>
-              <td className={styles.muted}>{ASSESSMENT_KIND_LABEL[assessment.kind]}</td>
-              <td>{assessment.title}</td>
-              <td className={styles.number}>{assessment.weightPercent}%</td>
-              <td className={styles.number}>
-                {assessment.score === null ? (
-                  <span className={styles.noScore}>미입력</span>
-                ) : (
-                  `${assessment.score} / ${assessment.maxScore}`
-                )}
-              </td>
-              <td className={styles.muted}>{assessment.evaluatedOn}</td>
-              <td>
-                <button type="button" className={styles.linkButton} onClick={() => onEdit(assessment.id)}>
-                  수정
-                </button>
-              </td>
-            </tr>
-          ))}
+          {course.assessments.map((assessment) =>
+            assessment.id === confirmingId ? (
+              // 브라우저 confirm 창 대신 행을 확인 문구로 바꾼다
+              <tr key={assessment.id} className={styles.confirmRow} data-assessment-id={assessment.id}>
+                <td colSpan={6}>
+                  <div className={styles.confirm}>
+                    <span>
+                      <strong>{assessment.title}</strong> 정말 삭제할까요?
+                    </span>
+                    <span className={styles.rowActions}>
+                      <button
+                        type="button"
+                        className={styles.dangerButton}
+                        data-action="confirm-delete"
+                        disabled={deleting}
+                        onClick={() => onConfirmDelete(assessment.id)}
+                      >
+                        {deleting ? '삭제 중...' : '삭제'}
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.linkButton}
+                        data-action="cancel-delete"
+                        disabled={deleting}
+                        onClick={onCancelDelete}
+                      >
+                        취소
+                      </button>
+                    </span>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              <tr
+                key={assessment.id}
+                className={assessment.id === editingId ? styles.editingRow : undefined}
+                data-assessment-id={assessment.id}
+              >
+                <td className={styles.muted}>{ASSESSMENT_KIND_LABEL[assessment.kind]}</td>
+                <td>{assessment.title}</td>
+                <td className={styles.number}>{assessment.weightPercent}%</td>
+                <td className={styles.number}>
+                  {assessment.score === null ? (
+                    <span className={styles.noScore}>미입력</span>
+                  ) : (
+                    `${assessment.score} / ${assessment.maxScore}`
+                  )}
+                </td>
+                <td className={styles.muted}>{assessment.evaluatedOn}</td>
+                <td>
+                  <span className={styles.rowActions}>
+                    <button type="button" className={styles.linkButton} data-action="edit" onClick={() => onEdit(assessment.id)}>
+                      수정
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.linkButton} ${styles.dangerLink}`}
+                      data-action="delete"
+                      onClick={() => onAskDelete(assessment.id)}
+                    >
+                      삭제
+                    </button>
+                  </span>
+                </td>
+              </tr>
+            ),
+          )}
         </tbody>
       </table>
     </div>
@@ -92,6 +160,9 @@ function AssessmentList({ course, editingId, onEdit }: { course: CourseDetail; e
 export function AssessmentDrawer({ courseId, onClose, onSaved }: AssessmentDrawerProps) {
   const detail = useAsync(`course-${courseId}`, () => getCourseDetail(courseId));
   const [editingId, setEditingId] = useState<string | undefined>();
+  const [confirmingId, setConfirmingId] = useState<string | undefined>();
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   // 저장할 때마다 바꿔서 폼을 새로 그린다 (입력 칸 초기화)
   const [formVersion, setFormVersion] = useState(0);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -113,6 +184,26 @@ export function AssessmentDrawer({ courseId, onClose, onSaved }: AssessmentDrawe
     setFormVersion((version) => version + 1);
     detail.reload();
     onSaved();
+  };
+
+  const confirmDelete = async (assessmentId: string) => {
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await deleteAssessment(courseId, assessmentId);
+      setConfirmingId(undefined);
+      // 수정 중이던 평가를 지웠으면 폼을 "평가 추가"로 돌린다
+      if (assessmentId === editingId) {
+        setEditingId(undefined);
+        setFormVersion((version) => version + 1);
+      }
+      detail.reload();
+      onSaved();
+    } catch {
+      setDeleteError('삭제하지 못했습니다. 잠시 후 다시 시도하세요.');
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
@@ -151,7 +242,24 @@ export function AssessmentDrawer({ courseId, onClose, onSaved }: AssessmentDrawe
               <h3 id="assessment-list-title" className={styles.sectionTitle}>
                 평가 목록
               </h3>
-              <AssessmentList course={course} editingId={editingId} onEdit={setEditingId} />
+              <AssessmentList
+                course={course}
+                editingId={editingId}
+                confirmingId={confirmingId}
+                deleting={deleting}
+                onEdit={setEditingId}
+                onAskDelete={(id) => {
+                  setDeleteError(null);
+                  setConfirmingId(id);
+                }}
+                onConfirmDelete={confirmDelete}
+                onCancelDelete={() => setConfirmingId(undefined)}
+              />
+              {deleteError && (
+                <p className={styles.formError} role="alert">
+                  {deleteError}
+                </p>
+              )}
             </section>
 
             <AssessmentForm

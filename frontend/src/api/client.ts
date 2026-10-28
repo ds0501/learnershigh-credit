@@ -12,7 +12,7 @@ const API_BASE = '/api';
 const MOCK_DELAY_MS = 300;
 
 export type QueryParams = MockParams;
-export type HttpMethod = 'GET' | 'POST' | 'PUT';
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
 
 interface RequestOptions {
   params?: QueryParams;
@@ -40,6 +40,8 @@ export async function apiRequest<T>(method: HttpMethod, path: string, { params =
     const detail = (await response.json().catch(() => null)) as { message?: string; fieldErrors?: Record<string, string> } | null;
     throw new ApiError(response.status, detail?.message ?? `API 요청 실패 (${response.status}): ${path}`, detail?.fieldErrors);
   }
+  // 204(본문 없음)는 undefined로 돌려준다
+  if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
 }
 

@@ -233,6 +233,7 @@ effective_year, total_credits(192), subject_credits(174), creative_credits(18)
 | POST | /api/student/credit/courses | 과목 등록 |
 | POST | /api/student/credit/courses/{courseId}/assessments | 평가 점수 입력 |
 | PUT | /api/student/credit/assessments/{assessmentId} | 평가 점수 수정 |
+| DELETE | /api/student/credit/courses/{courseId}/assessments/{assessmentId} | 평가 삭제 (성공 시 204, 본문 없음. 그 과목의 평가가 아니면 404) |
 
 ### 응답 예시: GET /summary
 ```json

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { CourseItem, CreditSummary, RequiredCourses, SemesterCourses } from '../modules/credit/types';
+import type { CourseDetail, CourseItem, CreditSummary, RequiredCourses, SemesterCourses } from '../modules/credit/types';
 import { creditMockHandlers } from './credit';
 
 const call = <T>(key: string, request: Partial<Parameters<(typeof creditMockHandlers)[string]>[0]> = {}) =>
@@ -76,5 +76,45 @@ describe('mock 시연 데이터', () => {
     expect(Math.round(science.achievementRate!)).toBe(48);
     expect(science.riskLevel).toBe('CAUTION');
     expect(call<CreditSummary>('GET /student/credit/summary').alert).toEqual({ riskCount: 0, cautionCount: 2 });
+  });
+
+  // 바로 위 테스트에서 추가한 평가를 지운다
+  it('통합과학2에서 수행평가 2를 삭제하면 48% → 35% 이수 위험, 필요 평균 45로 돌아온다', () => {
+    const science = byName(semester(1, 2).courses, '통합과학2');
+    const detail = call<CourseDetail>('GET /student/credit/courses/:courseId', { pathParams: { courseId: science.id } });
+    const added = detail.assessments.find((assessment) => assessment.title === '수행평가 2')!;
+
+    call('DELETE /student/credit/courses/:courseId/assessments/:assessmentId', {
+      pathParams: { courseId: science.id, assessmentId: added.id },
+    });
+    const after = byName(semester(1, 2).courses, '통합과학2');
+    expect(after.achievementRate).toBeCloseTo(35);
+    expect(after.riskLevel).toBe('RISK');
+    expect(after.requiredAverage).toBeCloseTo(45);
+    expect(call<CreditSummary>('GET /student/credit/summary').alert).toEqual({ riskCount: 1, cautionCount: 1 });
+  });
+
+  it('다른 과목의 평가 ID로는 삭제할 수 없다', () => {
+    const [english, science] = ['공통영어2', '통합과학2'].map((name) => byName(semester(1, 2).courses, name));
+    const scienceAssessment = call<CourseDetail>('GET /student/credit/courses/:courseId', { pathParams: { courseId: science.id } })
+      .assessments[0];
+    expect(() =>
+      call('DELETE /student/credit/courses/:courseId/assessments/:assessmentId', {
+        pathParams: { courseId: english.id, assessmentId: scienceAssessment.id },
+      }),
+    ).toThrow('평가를 찾을 수 없습니다.');
+  });
+
+  it('마지막 평가까지 삭제하면 성취율은 미입력(null), 상태는 NO_DATA', () => {
+    const english = byName(semester(1, 2).courses, '공통영어2');
+    const detail = call<CourseDetail>('GET /student/credit/courses/:courseId', { pathParams: { courseId: english.id } });
+    for (const assessment of detail.assessments) {
+      call('DELETE /student/credit/courses/:courseId/assessments/:assessmentId', {
+        pathParams: { courseId: english.id, assessmentId: assessment.id },
+      });
+    }
+    const after = byName(semester(1, 2).courses, '공통영어2');
+    expect(after.achievementRate).toBeNull();
+    expect(after.riskLevel).toBe('NO_DATA');
   });
 });

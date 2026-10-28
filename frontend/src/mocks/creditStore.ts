@@ -126,6 +126,13 @@ export function insertAssessment(courseId: string, input: AssessmentInput): Stor
   return assessment;
 }
 
+export function removeAssessment(assessmentId: string): boolean {
+  const index = store.assessments.findIndex((assessment) => assessment.id === assessmentId);
+  if (index < 0) return false;
+  store.assessments.splice(index, 1);
+  return true;
+}
+
 export function replaceAssessment(assessmentId: string, input: AssessmentInput): StoredAssessment | undefined {
   const assessment = findAssessment(assessmentId);
   if (!assessment) return undefined;
