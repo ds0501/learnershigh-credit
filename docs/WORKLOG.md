@@ -8,6 +8,47 @@
 - 막힌 점:
 - 다음 할 일:
 
+### 2026-11-10 — "참고용 예측" 안내 문구 삭제 (CLAUDE.md 규칙 변경)
+- 한 일: 화면의 이수 위험 표시마다 붙어 있던 "참고용 예측이며 학교의 공식 판정이 아닙니다" 문구를 전부 지움. 사용자가 "교육청 자료 기반으로 데이터를 넣었는데 이런 문구가 있으면 곤란하다"며 요청. 이 문구는 CLAUDE.md에 "화면에 반드시 표시한다"고 명시돼 있던 규칙이라, 그냥 화면만 지우면 문서와 안 맞아서 먼저 사용자에게 확인하고 CLAUDE.md 규칙 자체도 같이 지우기로 함(사용자가 "CLAUDE.md 규칙도 같이 바꾸고 전부 삭제" 선택)
+- 바뀐 파일: frontend/src/modules/credit/components/Disclaimer.tsx·Disclaimer.module.css(삭제), labels.ts(DISCLAIMER 상수 삭제), CreditPage.tsx·components/{RequiredCourseList,RiskAlertBanner,AssessmentDrawer}.tsx(Disclaimer import·호출 제거, AssessmentDrawer의 다 안 쓰는 `warned` 변수도 같이 제거), CLAUDE.md(목표 문단에서 해당 문장 삭제), docs/PRD.md(1장·5장·14장의 같은 문구 3곳 삭제, CLAUDE.md와 안 맞게 두지 않으려고 같이 고침)
+- 확인 결과(확인하지 못한 것 포함):
+  - `npm test`(68개) 전부 통과, `npm run build`(tsc + vite) 통과 — 모듈 수가 71→69로 줄어든 것으로 Disclaimer 컴포넌트·CSS가 빠졌음을 확인
+  - grep으로 frontend/src, backend, docs, CLAUDE.md 전체에 "참고용 예측"·"공식 판정"·"Disclaimer" 문자열이 더 없는지 확인(WORKLOG의 과거 날짜 항목에는 그대로 남겨둠 — 기존 항목은 고치지 않는다는 규칙)
+  - 화면에서 실제로 문구가 사라졌는지는 브라우저 확장이 연결되지 않아 직접 보지 못함(빌드·테스트로만 확인)
+- 결정과 이유: 이 문구는 CLAUDE.md의 명시적 요구사항이라 코드만 지우면 문서-구현 불일치가 생긴다고 판단해 사용자에게 먼저 확인을 받음. 사용자가 명확히 CLAUDE.md도 같이 바꾸라고 선택해서 진행
+- 막힌 점: 없음
+- 다음 할 일: 없음 (이번 요청은 완료)
+
+### 2026-11-10 — 과목 삭제 500 오류 수정(파생 삭제 쿼리에 트랜잭션 없음)
+- 한 일: 사용자가 화면에서 과목 삭제를 눌렀을 때 오류가 난다고 알려줘서 원인 확인. 평가가 있는 과목을 DELETE하면 500이 나는 버그를 고침. CourseManagementService.delete()에 @Transactional 추가
+- 바뀐 파일: backend/src/main/java/com/learnershigh/credit/service/CourseManagementService.java
+- 확인 결과(확인하지 못한 것 포함):
+  - /tmp/backend-bootrun.log에서 원인 확인: `jakarta.persistence.TransactionRequiredException: No EntityManager with actual transaction available for current thread - cannot reliably process 'remove' call` at `AssessmentRepository.deleteByStudentCourseId`. Spring Data JPA의 파생 삭제 쿼리(deleteBy...)는 CrudRepository의 save/delete와 달리 자동으로 트랜잭션에 들어가지 않아서, 평가가 1건 이상 있는 과목을 지울 때만 터짐(평가가 없으면 지울 게 없어서 안 터짐) — 그래서 어제 curl 테스트 때는 평가 없는 새 과목으로만 삭제를 확인해서 못 잡았음
+  - 백엔드 재기동 후 평가가 있는 새 과목(등록 → 평가 추가 → 삭제)으로 재현·수정 확인: DELETE 204, 평가·과목 모두 삭제됨(재조회 404). 기존 단위 테스트(CourseManagementServiceTest)는 리포지토리를 mock으로 띄워 트랜잭션 레이어를 안 타서 이 버그를 못 잡았음(통합 테스트가 없어서 실제 서버로 재현해야 했음)
+  - `./gradlew build` 재통과 확인
+- 결정과 이유: 서비스 메서드 하나에만 트랜잭션이 필요해서 클래스 전체가 아니라 delete() 메서드에만 @Transactional을 붙임. changeStatus()는 save() 하나뿐이라(CrudRepository 기본 메서드는 자체로 트랜잭션 처리) 그대로 둠
+- 막힌 점: 없음
+- 다음 할 일: 평가 추가·수정은 둘 다 단일 save()라 같은 문제는 없어 보이지만, 비슷한 파생 삭제/배치 쿼리를 더 추가할 때는 항상 트랜잭션 필요 여부를 먼저 확인하기
+
+### 2026-11-10 — 과목 상세·상태변경·삭제, 평가 추가·수정·삭제 구현 (남은 API 전부)
+- 한 일:
+  1) GET /courses/{courseId}(4.6, 과목 상세): CourseDetailService + CourseItemAssembler.toDetail(기존 toItem 재사용, CourseItemResponse를 @JsonUnwrapped로 감싸 CourseDetailResponse 조립, 평가는 id 오름차순)
+  2) PATCH /courses/{courseId}(4.7, 이수 상태 변경)·DELETE /courses/{courseId}(4.8, 과목+평가 함께 삭제): CourseManagementService. PATCH는 먼저 과목을 찾고(없으면 404) 그다음 status 값을 검증(계약과 동일한 순서)
+  3) POST·PUT·DELETE /courses/{courseId}/assessments(4.9~4.11): AssessmentService. frontend domain/validation.ts(validateAssessment)와 같은 검증(제목 공백, 날짜 형식, 만점>0, 득점 범위, 반영비율>0·합계 한도)을 그대로 포팅. kind가 WRITTEN/PERFORMANCE가 아니면 계약에는 없지만 방어적으로 "평가 종류를 선택하세요." 추가(널/이상값으로 반영비율 한도 계산이 깨지는 것 방지)
+  4) 5개 서비스가 공통으로 쓰는 "courseId로 과목 찾기, 없으면 404"를 StudentCourseFinder로 뽑음(courseId가 숫자가 아니거나 다른 학생 과목이면 404)
+  5) 엔티티에 변경 메서드 추가: StudentCourse.changeStatus(상태만), Assessment에 생성자(신규 저장용)·update(수정용, taskId는 안 바꿈). 둘 다 기존엔 생성자 없이 protected 기본 생성자뿐이라 추가가 필요했음
+  6) frontend modules/credit/api.ts의 나머지 6개(getCourseDetail, changeCourseStatus, deleteCourse, addAssessment, updateAssessment, deleteAssessment)에 forceReal:true 적용 — 이제 전부 실제 백엔드로 보냄
+- 바뀐 파일: backend/.../dto/{AssessmentRequest,AssessmentResponse,ChangeCourseStatusRequest,CourseDetailResponse}.java(신규), credit/service/{StudentCourseFinder,CourseDetailService,CourseManagementService,AssessmentService}.java(신규), credit/service/CourseItemAssembler.java(toDetail 추가), credit/entity/{StudentCourse,Assessment}.java(changeStatus·생성자·update 추가), credit/repository/AssessmentRepository.java(findByStudentCourseIdOrderByIdAsc, deleteByStudentCourseId 추가), credit/controller/CreditCourseController.java(6개 엔드포인트 추가), backend/src/test/java/com/learnershigh/credit/service/{StudentCourseFinderTest,CourseDetailServiceTest,CourseManagementServiceTest,AssessmentServiceTest}.java(신규), frontend/src/modules/credit/api.ts(나머지 6개 forceReal)
+- 확인 결과(확인하지 못한 것 포함):
+  - 백엔드 단위 테스트 23개 추가, `./gradlew build` 전체 통과(10개 테스트 클래스 총 52개). Mockito 문제 두 가지를 또 만남: ① when(...).thenReturn(List.of(existing(...), existing(...))) 처럼 thenReturn 인자 안에서 또 다른 mock을 만드는 중첩 스터빙(UnfinishedStubbingException, 이전 WORKLOG에서도 겪은 것과 같은 종류) → 변수로 분리해서 해결 ② Assessment를 mock(Assessment.class)로 만들 때 getStudentCourseId()를 안 스텁하면 null이 아니라 Mockito 기본값 0L이 나와서(박싱된 숫자 타입은 null 대신 0을 돌려주는 Mockito 기본 동작) ownership 비교가 조용히 실패해 의도한 "같은 과목" 테스트가 틀린 이유로 통과하길 기대했는데 404가 나옴 → getStudentCourseId()를 명시적으로 스텁해서 해결
+  - Docker Desktop 기동 → MySQL 헬시 확인 → 백엔드 bootRun → 실제 서버에 curl로 6개 엔드포인트를 전부 직접 호출해 docs/api-contract.md 4.6~4.11 예시와 응답을 대조: GET courses/16(통합과학2) 상세가 문서 예시와 완전히 일치, POST 평가 추가 후 achievementRate 47.85714285714286·riskLevel CAUTION·requiredAverage 없음이 문서 예시와 정확히 일치, 반영비율 한도 초과 오류 메시지("이미 40% 사용, 남은 0%") 일치, PUT 평가 수정 성공, 다른 과목 경로로 PUT하면 404 "평가를 찾을 수 없습니다." 확인, PATCH 상태 변경(COMPLETED↔IN_PROGRESS) 확인, DELETE 평가·DELETE 과목(새로 등록한 임시 과목으로) 성공 후 재삭제 시 404 확인, PATCH 잘못된 상태값 400 확인
+  - VITE_USE_MOCK=false로 프론트 개발 서버(5173)까지 띄워 서버가 정상 응답하는 것은 확인했지만, 브라우저 확장(claude-in-chrome)이 연결되지 않아 화면에서 직접 점수 입력·상태 변경·삭제를 눌러보는 것은 확인 못 함(이전 WORKLOG들과 같은 제약)
+- 결정과 이유:
+  - CourseDetailResponse는 CourseItemResponse를 필드 복제 대신 @JsonUnwrapped로 감싸 재사용함 — requiredAverage의 @JsonInclude(NON_NULL) 처리를 두 곳에 유지보수할 필요가 없게 하려고
+  - evaluatedOn 검증은 frontend와 같은 정규식(YYYY-MM-DD)만 쓰고, 정규식을 통과한 뒤 LocalDate.parse가 실패하는 경우(예: 2026-13-40)는 frontend에 없는 경계라서 계약엔 안 적혀 있지만 같은 "날짜를 입력하세요." 오류로 처리함(그대로 두면 500이 나서 서버 입력 경계 보호 차원)
+- 막힌 점: 없음
+- 다음 할 일: VITE_USE_MOCK=false로 브라우저에서 전체 화면 확인(브라우저 확장 연결되면), api-contract.md의 catalogId 예시 불일치 등 "미정" 항목 정리
+
 ### 2026-10-28 — GET /courses, GET /required-courses 구현, 과목 표·필수 과목 패널 실제 API 연결
 - 한 일:
   1) GET /api/student/credit/courses?gradeYear=&term= (api-contract.md 4.2): CourseQueryService.getCourses가 그 학년·학기 과목을 등록 순서(id 오름차순)로 가져와 totalCredits(학점 합)와 과목 목록을 돌려줌. 과목이 없으면 courses: [], totalCredits: 0

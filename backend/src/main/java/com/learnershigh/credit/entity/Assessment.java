@@ -45,6 +45,25 @@ public class Assessment {
 	protected Assessment() {
 	}
 
+	public Assessment(
+			Long studentCourseId,
+			String kind,
+			String title,
+			Integer weightPercent,
+			Integer maxScore,
+			Integer score,
+			String taskId,
+			LocalDate evaluatedOn) {
+		this.studentCourseId = studentCourseId;
+		this.kind = kind;
+		this.title = title;
+		this.weightPercent = weightPercent;
+		this.maxScore = maxScore;
+		this.score = score;
+		this.taskId = taskId;
+		this.evaluatedOn = evaluatedOn;
+	}
+
 	public Long getId() {
 		return id;
 	}
@@ -79,6 +98,16 @@ public class Assessment {
 
 	public LocalDate getEvaluatedOn() {
 		return evaluatedOn;
+	}
+
+	// 평가 수정 (api-contract.md 4.10). taskId는 바꾸지 않는다
+	public void update(String kind, String title, Integer weightPercent, Integer maxScore, Integer score, LocalDate evaluatedOn) {
+		this.kind = kind;
+		this.title = title;
+		this.weightPercent = weightPercent;
+		this.maxScore = maxScore;
+		this.score = score;
+		this.evaluatedOn = evaluatedOn;
 	}
 
 }

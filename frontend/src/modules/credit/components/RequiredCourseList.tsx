@@ -1,6 +1,5 @@
 import { badgeOf } from '../labels';
 import type { RequiredCourses } from '../types';
-import { Disclaimer } from './Disclaimer';
 import { StatusBadge } from './StatusBadge';
 import styles from './RequiredCourseList.module.css';
 
@@ -11,16 +10,13 @@ export function RequiredCourseList({ data }: { data: RequiredCourses }) {
   }
 
   return (
-    <>
-      <ul className={styles.list}>
-        {data.courses.map((course) => (
-          <li key={course.id} className={styles.item}>
-            <span className={styles.name}>{course.name}</span>
-            <StatusBadge kind={badgeOf(course.status, course.riskLevel)} />
-          </li>
-        ))}
-      </ul>
-      <Disclaimer />
-    </>
+    <ul className={styles.list}>
+      {data.courses.map((course) => (
+        <li key={course.id} className={styles.item}>
+          <span className={styles.name}>{course.name}</span>
+          <StatusBadge kind={badgeOf(course.status, course.riskLevel)} />
+        </li>
+      ))}
+    </ul>
   );
 }

@@ -148,4 +148,9 @@ public class StudentCourse {
 		return totalSessions;
 	}
 
+	// 이수 상태 변경 (api-contract.md 4.7)
+	public void changeStatus(CourseStatus status) {
+		this.status = status;
+	}
+
 }

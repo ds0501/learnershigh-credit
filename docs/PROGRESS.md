@@ -1,10 +1,10 @@
 # 진행 현황
-최종 갱신: 2026-10-28
+최종 갱신: 2026-11-10
 
 ## 현재 상태
-- 된 것: 학점 현황 요약(SummaryCard), 학기별 수강 과목 표, 남은 필수 이수 과목 패널이 이제 mock이 아니라 실제 백엔드 API를 쓴다. API 명세 문서(docs/api-contract.md) 완료. DB 테이블 V1~V5(표준 과목 291개, 졸업/이수 기준값, 데모 학생 과목 20개·평가 44개, 데모 학생 id="0") 모두 적용 완료. 백엔드: 공통 오류 응답(ApiException 계층+GlobalExceptionHandler), 계산 서비스(CreditCalculationService), GET summary·courses·required-courses·catalog(검색), POST courses(등록) 실제로 동작 — WORKLOG 2026-10-28 "GET /courses, GET /required-courses 구현...", "계산 서비스와 GET /summary 구현...", "공통 처리와 과목 검색·등록 API 구현"
-- 안 된 것: GET courses/{courseId}(과목 상세), 과목 변경 API(이수 상태 변경·삭제), 평가 API(추가·수정·삭제)는 여전히 mock. **그래서 화면의 과목 표에는 실제 DB 과목이 보이지만, 그 과목을 눌러 점수를 입력/상태 변경/삭제하려 하면 mock 저장소에 그 id가 없어 오류가 난다** — 평가 점수 입력·삭제, 이수 상태 변경, 과목 삭제는 아직 mock 과목(원래 시연용으로 들어있던 20개)에서만 정상 동작함
-- 다음: GET courses/{courseId} + 과목 변경 API + 평가 API를 실제 백엔드로 구현 (위 "안 된 것"의 간극을 없애는 것)
+- 된 것: api-contract.md의 API 11개(4.1~4.11) 전부 실제 백엔드로 구현 완료 — 요약·조회·검색·등록(기존) + 과목 상세·이수 상태 변경·과목 삭제·평가 추가·수정·삭제(이번에 추가). frontend modules/credit/api.ts의 모든 함수가 forceReal:true라 VITE_USE_MOCK 값과 무관하게 항상 실제 백엔드를 쓴다. 실제 서버(Docker MySQL + bootRun)에 curl로 11개 엔드포인트를 전부 호출해 docs/api-contract.md 예시와 응답이 일치함을 확인함 — WORKLOG 2026-11-10 "과목 상세·상태변경·삭제, 평가 추가·수정·삭제 구현 (남은 API 전부)". 과목 삭제 500 오류(파생 삭제 쿼리 트랜잭션 누락) 수정함 — WORKLOG 2026-11-10 "과목 삭제 500 오류 수정". 화면의 "참고용 예측" 안내 문구는 전부 삭제(CLAUDE.md 규칙도 같이 바꿈) — WORKLOG 2026-11-10 "'참고용 예측' 안내 문구 삭제"
+- 안 된 것(확인 못 함): 브라우저 확장(claude-in-chrome)이 연결되지 않아 화면에서 직접 눌러서(점수 입력, 상태 변경, 과목/평가 삭제) 확인하지 못함. curl로 서버 응답만 확인함
+- 다음: 브라우저에서 화면 전체를 직접 눌러 확인(확장 연결되면). 그 다음 "미정" 목록 정리(특히 catalogId 예시 불일치)
 
 ## 완료
 각 항목의 실행 확인 상세는 docs/WORKLOG.md의 해당 날짜 항목에 있다.
@@ -27,16 +27,14 @@
 - [x] 공통 오류 응답/성공 코드 + GET catalog 검색 + POST courses 등록 — WORKLOG 2026-10-28 "공통 처리와 과목 검색·등록 API 구현"
 - [x] 계산 서비스(성취율·출석률·위험단계·필요평균) + GET summary + 첫 화면 요약 카드 실제 API 연결 — WORKLOG 2026-10-28 "계산 서비스와 GET /summary 구현, 첫 화면 요약 카드 실제 API 연결"
 - [x] GET courses?gradeYear=&term=, GET required-courses + 과목 표·필수 과목 패널 실제 API 연결 — WORKLOG 2026-10-28 "GET /courses, GET /required-courses 구현, 과목 표·필수 과목 패널 실제 API 연결"
+- [x] GET courses/{courseId}(과목 상세), PATCH·DELETE courses/{courseId}(상태변경·삭제), POST·PUT·DELETE assessments(평가 추가·수정·삭제) + frontend 나머지 전부 forceReal — WORKLOG 2026-11-10 "과목 상세·상태변경·삭제, 평가 추가·수정·삭제 구현 (남은 API 전부)"
 
 ## 지금 하는 것
-- GET courses/{courseId}(과목 상세) 설계 시작
+- 없음 (api-contract.md의 API 11개 전부 구현 완료, 다음 사람은 아래 "다음 할 일"부터 시작)
 
 ## 다음 할 일 (현재 기준)
-백엔드 구현 순서. API 모양과 규칙은 docs/api-contract.md가 기준이다(예시 JSON은 mock 실제 응답이고 contract.test.ts로 확인됨).
-1. GET courses/{courseId}(과목 상세, 평가 목록 포함) — CourseItemAssembler·CreditCalculationService를 재사용. 이게 없어서 지금 화면에서 실제 DB 과목을 눌러 점수 입력 패널을 열면 mock에 없는 과목이라 오류가 남(위 "안 된 것" 참고)
-2. 과목 변경 API: PATCH courses/{courseId}(이수 상태 변경), DELETE courses/{courseId}(평가도 함께 삭제) (POST courses는 이미 됨)
-3. 평가 API: POST courses/{courseId}/assessments, PUT·DELETE courses/{courseId}/assessments/{assessmentId}(그 과목의 평가가 아니면 404)
-4. 연결 확인: VITE_USE_MOCK=false로 프론트를 띄워 화면 전체 확인, api-contract.md 예시와 실제 응답 비교(단, api-contract.md의 catalogId 예시는 frontend mock 기준이라 실제 DB 값과 다를 수 있음 — "미정" 참고). summary·courses·required-courses는 이미 forceReal로 항상 실제 API를 쓰므로 VITE_USE_MOCK 값과 무관하게 동작함을 재확인
+1. 브라우저에서 화면 전체를 직접 눌러 확인(브라우저 확장이 연결 안 돼 아직 못 함): 점수 입력/수정/삭제, 이수 상태 변경, 과목 등록/삭제가 화면에서 실제로 동작하는지, 그리고 그 결과로 요약 카드·필수 과목 패널이 올바르게 다시 계산되는지
+2. "미정" 목록 정리(특히 api-contract.md·contractScenario.ts의 catalogId 예시와 실제 DB 순서 불일치, SPECIALIZED 과목 유형 프론트 대응)
 
 ## 막힌 것
 - 없음

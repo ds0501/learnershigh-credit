@@ -1,6 +1,5 @@
 import { formatRate, requiredAverageMessage } from '../labels';
 import type { CourseItem, CreditSummary } from '../types';
-import { Disclaimer } from './Disclaimer';
 import styles from './RiskAlertBanner.module.css';
 
 interface RiskAlertBannerProps {
@@ -45,7 +44,6 @@ export function RiskAlertBanner({ alert, courses }: RiskAlertBannerProps) {
             주의: {cautionCourses.map((course) => `${course.name} ${formatRate(course.achievementRate)}`).join(', ')}
           </p>
         )}
-        <Disclaimer />
       </div>
     </div>
   );

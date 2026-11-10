@@ -5,7 +5,6 @@ import { changeCourseStatus, deleteAssessment, deleteCourse, getCourseDetail } f
 import { ASSESSMENT_KIND_LABEL, badgeOf, COURSE_STATUS_LABEL, COURSE_TYPE_LABEL, formatRate, requiredAverageMessage } from '../labels';
 import type { CourseDetail } from '../types';
 import { AssessmentForm } from './AssessmentForm';
-import { Disclaimer } from './Disclaimer';
 import { StateMessage } from './StateMessage';
 import { StatusBadge } from './StatusBadge';
 import styles from './AssessmentDrawer.module.css';
@@ -105,7 +104,6 @@ function CourseActions({ course, onChanged, onDeleted }: CourseActionsProps) {
 
 function CourseStatus({ course }: { course: CourseDetail }) {
   const badge = badgeOf(course.status, course.riskLevel);
-  const warned = badge === 'risk' || badge === 'caution';
   return (
     <div className={`${styles.status} ${badge === 'risk' ? styles.statusRisk : ''}`}>
       <div className={styles.statusRow}>
@@ -120,7 +118,6 @@ function CourseStatus({ course }: { course: CourseDetail }) {
         <p className={styles.guide}>{requiredAverageMessage(course.requiredAverage)}</p>
       )}
       {course.achievementRate === null && <p className={styles.hint}>입력된 평가가 없어 성취율을 계산하지 않습니다.</p>}
-      {warned && <Disclaimer />}
     </div>
   );
 }
