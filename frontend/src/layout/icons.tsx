@@ -70,3 +70,13 @@ export function ChartIcon(props: IconProps) {
     </BaseIcon>
   );
 }
+
+// 학과 로드맵: 나침반
+export function CompassIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="m14.5 9.5-2 5-5 2 2-5 5-2Z" />
+    </BaseIcon>
+  );
+}

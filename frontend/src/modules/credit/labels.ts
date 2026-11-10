@@ -4,8 +4,6 @@ import type { AssessmentKind, CourseStatus, CourseType, GradeDisplay, RiskLevel 
 // 로그인 전 단계라 데모 학생의 현재 학기를 고정한다
 export const CURRENT_TERM = { gradeYear: 1, term: 2 };
 
-export const DISCLAIMER = '참고용 예측이며 학교의 공식 판정이 아닙니다';
-
 export interface TermOption {
   key: string;
   gradeYear: number;

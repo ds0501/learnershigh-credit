@@ -1,0 +1,320 @@
+.backLink {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.backLink:hover {
+  color: var(--color-text);
+}
+
+.searchBox {
+  position: relative;
+  margin-bottom: var(--space-2);
+}
+
+.searchInput {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: var(--font-size-md);
+  font-family: inherit;
+}
+
+.searchDropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  z-index: 5;
+}
+
+.searchRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.searchRow:first-child {
+  border-top: none;
+}
+
+.searchRow:hover {
+  background: var(--color-surface-active);
+}
+
+.searchName {
+  font-weight: var(--font-weight-bold);
+}
+
+.searchMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-subtle);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+}
+
+.searchEmpty {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-subtle);
+}
+
+.lowSampleChip {
+  display: inline-block;
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  color: var(--color-caution);
+  background: var(--color-caution-bg);
+  border: 1px solid var(--color-caution-border);
+  white-space: nowrap;
+}
+
+.hint {
+  margin: 0 0 var(--space-5);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-subtle);
+}
+
+.deptHeader {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.deptName {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+}
+
+.chip {
+  display: inline-block;
+  padding: 1px var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.deptMeta {
+  margin: 0 0 var(--space-4);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.panel {
+  padding: var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  margin-bottom: var(--space-4);
+}
+
+.panelTitle {
+  margin: 0 0 var(--space-1);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+}
+
+.panelSub {
+  margin: 0 0 var(--space-4);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-subtle);
+}
+
+.empty {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-subtle);
+}
+
+.subjectList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.subjectRow {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+}
+
+.subjectRow.registered {
+  border-color: var(--color-accent-dim);
+  background: rgba(79, 240, 247, 0.06);
+}
+
+.subjectRowTop {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.subjectName {
+  font-weight: var(--font-weight-bold);
+  min-width: 108px;
+}
+
+.subjectTag {
+  font-size: var(--font-size-xs);
+  padding: 1px 7px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.subjectTagCore {
+  color: var(--color-accent-strong);
+  border-color: var(--color-accent-dim);
+}
+
+.registeredTag {
+  font-size: var(--font-size-xs);
+  padding: 1px 7px;
+  border-radius: var(--radius-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-on-accent);
+  background: var(--color-accent);
+}
+
+.ratioTrack {
+  flex: 1;
+  height: 6px;
+  background: var(--color-border);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  min-width: 60px;
+}
+
+.ratioFill {
+  display: block;
+  height: 100%;
+  background: var(--color-accent-dim);
+}
+
+.ratioFillEmphasized {
+  display: block;
+  height: 100%;
+  background: var(--color-accent);
+}
+
+.ratioText {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  min-width: 108px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.universityToggle {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-subtle);
+  background: none;
+  border: none;
+  text-decoration: underline dotted;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+}
+
+.universityPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: var(--space-2) 0 var(--space-1);
+  padding: var(--space-3);
+  background: var(--color-surface-raised);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.universityLabel {
+  color: var(--color-text-subtle);
+}
+
+.toggleLine {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-accent-strong);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 0;
+  font-family: inherit;
+}
+
+.arrow {
+  display: inline-block;
+}
+
+.arrowOpen {
+  display: inline-block;
+  transform: rotate(90deg);
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 var(--space-5);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-subtle);
+}
+
+.legendDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  display: inline-block;
+}
+
+.eduTrack {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: var(--space-2) var(--space-3);
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.eduTrack dt {
+  color: var(--color-text-subtle);
+  padding-top: 2px;
+}
+
+.eduTrack dd {
+  margin: 0;
+  color: var(--color-text-muted);
+}

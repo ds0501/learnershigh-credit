@@ -1,13 +1,13 @@
 import { useCallback, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
 import { useAsync } from '../../api/useAsync';
+import { CompassIcon } from '../../layout/icons';
 import { PageHeader } from '../../layout/PageHeader';
 import { getCourses, getRequiredCourses, getSummary } from './api';
 import { AssessmentDrawer } from './components/AssessmentDrawer';
 import { CourseRegisterModal } from './components/CourseRegisterModal';
 import { CourseTable } from './components/CourseTable';
-import { Disclaimer } from './components/Disclaimer';
 import { RequiredCourseList } from './components/RequiredCourseList';
 import { RiskAlertBanner } from './components/RiskAlertBanner';
 import { SemesterTabs } from './components/SemesterTabs';
@@ -59,9 +59,15 @@ export function CreditPage() {
         title="학점 현황"
         subtitle={termLabel(CURRENT_TERM.gradeYear, CURRENT_TERM.term)}
         actions={
-          <button type="button" className={styles.registerButton} data-action="open-register" onClick={() => setRegisterOpen(true)}>
-            + 신규 과목 등록
-          </button>
+          <>
+            <Link to="/credit/roadmap" className={styles.roadmapLink} data-action="open-roadmap">
+              <CompassIcon width={16} height={16} />
+              학과 로드맵
+            </Link>
+            <button type="button" className={styles.registerButton} data-action="open-register" onClick={() => setRegisterOpen(true)}>
+              + 신규 과목 등록
+            </button>
+          </>
         }
       />
 
@@ -112,9 +118,6 @@ export function CreditPage() {
               <>
                 <CourseTable data={courses.state.data} onSelect={setSelectedCourseId} />
                 <p className={styles.hint}>과목을 누르면 평가 점수 입력, 이수 상태 변경, 과목 삭제를 할 수 있습니다.</p>
-                {courses.state.data.courses.some((course) => course.riskLevel === 'RISK' || course.riskLevel === 'CAUTION') && (
-                  <Disclaimer />
-                )}
               </>
             ))}
         </section>

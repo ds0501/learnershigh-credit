@@ -1,10 +1,12 @@
 # 진행 현황
-최종 갱신: 2026-10-28
+최종 갱신: 2026-11-10
 
 ## 현재 상태
-- 된 것: 학점 현황 요약(SummaryCard), 학기별 수강 과목 표, 남은 필수 이수 과목 패널이 이제 mock이 아니라 실제 백엔드 API를 쓴다. API 명세 문서(docs/api-contract.md) 완료. DB 테이블 V1~V5(표준 과목 291개, 졸업/이수 기준값, 데모 학생 과목 20개·평가 44개, 데모 학생 id="0") 모두 적용 완료. 백엔드: 공통 오류 응답(ApiException 계층+GlobalExceptionHandler), 계산 서비스(CreditCalculationService), GET summary·courses·required-courses·catalog(검색), POST courses(등록) 실제로 동작 — WORKLOG 2026-10-28 "GET /courses, GET /required-courses 구현...", "계산 서비스와 GET /summary 구현...", "공통 처리와 과목 검색·등록 API 구현"
-- 안 된 것: GET courses/{courseId}(과목 상세), 과목 변경 API(이수 상태 변경·삭제), 평가 API(추가·수정·삭제)는 여전히 mock. **그래서 화면의 과목 표에는 실제 DB 과목이 보이지만, 그 과목을 눌러 점수를 입력/상태 변경/삭제하려 하면 mock 저장소에 그 id가 없어 오류가 난다** — 평가 점수 입력·삭제, 이수 상태 변경, 과목 삭제는 아직 mock 과목(원래 시연용으로 들어있던 20개)에서만 정상 동작함
-- 다음: GET courses/{courseId} + 과목 변경 API + 평가 API를 실제 백엔드로 구현 (위 "안 된 것"의 간극을 없애는 것)
+- 된 것: api-contract.md의 API 11개(4.1~4.11) 전부 실제 백엔드로 구현 완료(학점 현황 쪽). 과목 삭제 500 오류(파생 삭제 쿼리 트랜잭션 누락) 수정함. 화면의 "참고용 예측" 안내 문구는 전부 삭제(CLAUDE.md 규칙도 같이 바꿈) — WORKLOG 2026-11-10 항목들
+- 된 것(학과 로드맵, 신규): docs/dept_subject_2depth.xlsx(대교협 2028학년도 권역별 대학별 권장과목) 기반으로 학과 검색 → 추천 선택과목 기능 추가. DB 테이블 credit_department·credit_department_subject(V6) + 실데이터 92개 학과·2035개 추천행 시딩(V7), GET /api/student/credit/departments?query=·GET /departments/{id} 구현, 프론트 /credit/roadmap 화면(검색, 전체공통/다수공통/학교별다름 3단, 요구 대학 토글, 이미 등록한 과목 강조)까지 전부 실제 API로 연결 완료 — WORKLOG 2026-11-10 "학과 로드맵 DB·API·프론트 연결"
+- 안 된 것(확인 못 함): 브라우저 확장(claude-in-chrome)이 연결되지 않아 화면에서 직접 눌러서(학점 현황 전체 기능, 학과 로드맵 검색) 확인하지 못함. curl/build/test로만 확인함
+- 안 된 것(법적 확인 필요): 학과 로드맵의 "참고: 시도교육청 예시" 섹션(서울시교육청교육연구정보원 자료)은 원본에 "무단전재·게시 금지" 조건이 있어 승인 전까지 실제 배포 빌드에서는 빼야 함(지금은 개발용으로만 노출 중, frontend 코드에 TODO 남김) — "미정" 참고
+- 다음: 브라우저에서 화면 전체를 직접 눌러 확인(확장 연결되면). 교육연구정보원 승인 여부 확인. 그 다음 "미정" 목록 정리
 
 ## 완료
 각 항목의 실행 확인 상세는 docs/WORKLOG.md의 해당 날짜 항목에 있다.
@@ -27,21 +29,24 @@
 - [x] 공통 오류 응답/성공 코드 + GET catalog 검색 + POST courses 등록 — WORKLOG 2026-10-28 "공통 처리와 과목 검색·등록 API 구현"
 - [x] 계산 서비스(성취율·출석률·위험단계·필요평균) + GET summary + 첫 화면 요약 카드 실제 API 연결 — WORKLOG 2026-10-28 "계산 서비스와 GET /summary 구현, 첫 화면 요약 카드 실제 API 연결"
 - [x] GET courses?gradeYear=&term=, GET required-courses + 과목 표·필수 과목 패널 실제 API 연결 — WORKLOG 2026-10-28 "GET /courses, GET /required-courses 구현, 과목 표·필수 과목 패널 실제 API 연결"
+- [x] GET courses/{courseId}(과목 상세), PATCH·DELETE courses/{courseId}(상태변경·삭제), POST·PUT·DELETE assessments(평가 추가·수정·삭제) + frontend 나머지 전부 forceReal — WORKLOG 2026-11-10 "과목 상세·상태변경·삭제, 평가 추가·수정·삭제 구현 (남은 API 전부)"
+- [x] 학과 로드맵: DB 테이블(V6)·실데이터 시딩(V7, 92개 학과·2035개 추천행) — WORKLOG 2026-11-10 "학과 로드맵 DB·API·프론트 연결"
+- [x] 학과 로드맵: GET /departments?query=·GET /departments/{id} API + /credit/roadmap 화면 연결 — WORKLOG 2026-11-10 "학과 로드맵 DB·API·프론트 연결"
 
 ## 지금 하는 것
-- GET courses/{courseId}(과목 상세) 설계 시작
+- 없음 (학점 현황·학과 로드맵 1차 구현 완료, 다음 사람은 아래 "다음 할 일"부터 시작)
 
 ## 다음 할 일 (현재 기준)
-백엔드 구현 순서. API 모양과 규칙은 docs/api-contract.md가 기준이다(예시 JSON은 mock 실제 응답이고 contract.test.ts로 확인됨).
-1. GET courses/{courseId}(과목 상세, 평가 목록 포함) — CourseItemAssembler·CreditCalculationService를 재사용. 이게 없어서 지금 화면에서 실제 DB 과목을 눌러 점수 입력 패널을 열면 mock에 없는 과목이라 오류가 남(위 "안 된 것" 참고)
-2. 과목 변경 API: PATCH courses/{courseId}(이수 상태 변경), DELETE courses/{courseId}(평가도 함께 삭제) (POST courses는 이미 됨)
-3. 평가 API: POST courses/{courseId}/assessments, PUT·DELETE courses/{courseId}/assessments/{assessmentId}(그 과목의 평가가 아니면 404)
-4. 연결 확인: VITE_USE_MOCK=false로 프론트를 띄워 화면 전체 확인, api-contract.md 예시와 실제 응답 비교(단, api-contract.md의 catalogId 예시는 frontend mock 기준이라 실제 DB 값과 다를 수 있음 — "미정" 참고). summary·courses·required-courses는 이미 forceReal로 항상 실제 API를 쓰므로 VITE_USE_MOCK 값과 무관하게 동작함을 재확인
+1. 브라우저에서 화면 전체를 직접 눌러 확인(브라우저 확장이 연결 안 돼 아직 못 함): 학점 현황 전체 기능(점수 입력/수정/삭제, 이수 상태 변경, 과목 등록/삭제), 학과 로드맵 검색·추천·토글이 화면에서 실제로 동작하는지
+2. 서울시교육청교육연구정보원에 "학과 로드맵"의 시도교육청 예시 자료 이용 승인 문의(위 "미정" 참고). 승인 전까지 배포 빌드에서는 그 섹션을 빼야 함
+3. "미정" 목록 정리(특히 api-contract.md·contractScenario.ts의 catalogId 예시와 실제 DB 순서 불일치, SPECIALIZED 과목 유형 프론트 대응)
 
 ## 막힌 것
 - 없음
 
 ## 미정 (임의로 정하지 않음)
+- 학과 로드맵의 "참고: 시도교육청 예시"(서울시교육청교육연구정보원 자료) 이용 승인 — 원본에 "무단전재·게시 금지, 교사의 학생 지도 목적만 예외" 조건이 있어 지금은 개발용으로만 노출 중. 승인 안 나면 그 섹션(DB 컬럼은 그대로 두고 frontend에서만 숨김) 제거
+- 학과 로드맵 검색 범위: 지금은 대교협 자료가 있는 92개 학과만 검색됨(학과카드 시트 기준). 참고_교육청예시에만 있는 나머지 33개 학과를 검색 대상에 포함할지는 정하지 않음
 - 기존 러너스하이와의 연결 방식
 - 인증 방식 (이번 주는 로그인 없이 데모 학생 1명으로 가정)
 - 출석률 데이터 출처
