@@ -1,7 +1,8 @@
 import { useCallback, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
 import { useAsync } from '../../api/useAsync';
+import { CompassIcon } from '../../layout/icons';
 import { PageHeader } from '../../layout/PageHeader';
 import { getCourses, getRequiredCourses, getSummary } from './api';
 import { AssessmentDrawer } from './components/AssessmentDrawer';
@@ -58,9 +59,15 @@ export function CreditPage() {
         title="학점 현황"
         subtitle={termLabel(CURRENT_TERM.gradeYear, CURRENT_TERM.term)}
         actions={
-          <button type="button" className={styles.registerButton} data-action="open-register" onClick={() => setRegisterOpen(true)}>
-            + 신규 과목 등록
-          </button>
+          <>
+            <Link to="/credit/roadmap" className={styles.roadmapLink} data-action="open-roadmap">
+              <CompassIcon width={16} height={16} />
+              학과 로드맵
+            </Link>
+            <button type="button" className={styles.registerButton} data-action="open-register" onClick={() => setRegisterOpen(true)}>
+              + 신규 과목 등록
+            </button>
+          </>
         }
       />
 

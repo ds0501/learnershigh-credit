@@ -8,6 +8,28 @@
 - 막힌 점:
 - 다음 할 일:
 
+### 2026-11-10 — 학과 로드맵: DB·API·프론트 연결 (1차 구현)
+- 한 일:
+  1) 설계 과정: docs/dept_subject_2depth.xlsx(대교협 2028학년도 권역별 대학별 권장과목, 학과카드·1depth_공통과목·2depth_학교별·참고_교육청예시 시트 사용) 구조 분석 → 화면 와이어프레임(Artifact) → 확장성 검토 → 테이블 설계, 사용자와 단계별로 확인하며 진행. 선이수 조건(부산교육청 근거 미확인 자료)은 저장하지 않기로 함
+  2) DB(V6): credit_department(학과, effective_year로 연도별 재시딩 가능), credit_department_subject(추천 과목, ratio_percent로 전체공통/다수공통/학교별다름 구분, catalog_id FK로 기존 과목 카탈로그와 연결 — 89개 과목명이 전부 기존 291개 카탈로그와 정확히 일치해 텍스트 대신 FK로 연결함)
+  3) DB(V7): 엑셀을 파이썬으로 읽어 INSERT문 생성(학과 92개 + 추천 행 2035개, 대학명은 콤마 텍스트). catalog_id/department_id는 이름으로 서브쿼리 조회(V4 seed와 같은 방식)
+  4) 백엔드: Department·DepartmentSubject 엔티티(읽기 전용, 변경 메서드 없음), DepartmentRepository(findByEffectiveYear, 최신 연도 조회)·DepartmentSubjectRepository, DepartmentService(검색은 CourseCatalogService.search와 같은 방식 — 전체 조회 후 공백무시 부분일치+limit 10, 상세는 과목을 비율 내림차순으로 모아 데모 학생의 기존 등록 과목과 catalogId를 대조해 alreadyRegistered 계산), DepartmentController(GET /departments?query=, GET /departments/{id})
+  5) 프론트: /credit/roadmap 라우트, CreditPage 헤더에 보조 버튼("학과 로드맵", 나침반 아이콘, 신규 과목 등록 버튼보다 왼쪽에 둠) 추가. DepartmentRoadmapPage: 검색(자동완성, CourseRegisterModal의 catalog 검색과 같은 패턴) → 선택 → 전체 대학 공통/다수 대학 공통/대학별로 다른 과목 3단 표시, "대학별로 다른 과목"은 기본 접힌 토글, 각 과목에 "요구 대학 보기" 2차 토글, 이미 등록한 과목은 테두리·막대 색 강조. "참고: 시도교육청 예시" 섹션은 TODO 주석과 함께 유지(아래 결정과 이유 참고)
+- 바뀐 파일: database/migrations/V6__create_department_tables.sql·V7__seed_department_roadmap.sql(신규), backend/.../entity/{Department,DepartmentSubject}.java, repository/{DepartmentRepository,DepartmentSubjectRepository}.java, dto/{DepartmentSummaryResponse,DepartmentSubjectResponse,DepartmentDetailResponse}.java, service/DepartmentService.java, controller/DepartmentController.java(전부 신규), backend/src/test/.../DepartmentServiceTest.java(신규), frontend/src/router.tsx(라우트 추가), layout/icons.tsx(CompassIcon), layout/PageHeader.module.css(.actions를 flex로, 버튼 여러 개 지원), modules/credit/CreditPage.tsx·CreditPage.module.css(보조 버튼), modules/credit/roadmap/(DepartmentRoadmapPage.tsx·module.css, api.ts, types.ts 전부 신규)
+- 확인 결과(확인하지 못한 것 포함):
+  - 백엔드 단위 테스트 6개 추가(DepartmentServiceTest), `./gradlew build` 전체 통과. 또 UnfinishedStubbingException(when().thenReturn() 안에서 mock을 새로 만드는 것)을 겪어서 변수로 분리해 해결 — 이번이 세 번째라, 다음에 Mockito 테스트 작성 시 처음부터 변수로 뺄 것
+  - 실제 서버에 Flyway로 V6·V7 적용 후 DB 직접 조회로 확인: credit_department 92행, credit_department_subject 2035행, 간호학과 데이터(생명과학 76.9%, 화학 53.8% 등 14개 과목)가 엑셀 원본과 1:1 일치, full_common 플래그도 ratio=100 행에서 정상 동작(고고학과 '한문' 등)
+  - curl로 GET /departments?query=간호 → 간호학과 1건, GET /departments/{id} → 과목 14개가 비율 내림차순으로, "확률과 통계"(데모 학생이 실제 등록한 과목)만 alreadyRegistered:true로 정확히 계산됨을 확인
+  - frontend `npm run build`·`npm test`(68개) 통과, Vite 개발 서버(5173) 프록시로도 같은 응답 확인(HMR 로그에 에러 없음)
+  - 확인 못 함: 브라우저 확장이 연결되지 않아 화면에서 직접 검색 → 선택 → 토글을 눌러보는 것(이전 WORKLOG들과 같은 제약)
+- 결정과 이유:
+  - "참고: 시도교육청 예시"(서울시교육청교육연구정보원 자료)는 원본에 "무단전재·게시 금지, 교사의 학생 지도 목적만 예외" 조건이 있어 실제 배포 전 이용 승인이 필요하다고 사용자에게 안내함. 사용자가 "실사용 서비스 개발에 바로 들어가는 게 아니니 지금은 쓰고 나중에 팀원에게 고지"하기로 해서, DB에는 시딩하고 화면에도 노출해 두되 코드에 TODO 주석("승인 전까지 배포 빌드에서는 뺀다")을 남김. docs/PROGRESS.md "미정"에도 적어 둠
+  - 요구 대학 목록은 정규화된 대학 테이블 대신 콤마 텍스트 컬럼으로 저장 — "요구 대학 보기" 토글 표시 용도뿐이라 과설계라고 판단
+  - effective_year 컬럼을 넣어 연도별 자료 추가를 염두에 뒀지만, 상세 조회(GET /departments/{id})는 PK인 id로만 조회하면 되고(그 행 자체가 이미 특정 연도), 검색(GET /departments?query=)만 "가장 최근 effective_year"로 필터링하면 되게 설계함
+  - 3단 분류(전체공통/다수공통/학교별다름)는 백엔드가 분류해서 내려주지 않고, ratio_percent·fullCommon 필드만 주고 frontend가 분류함 — 분류 기준이 화면 표시 방식과 강하게 묶여 있어서 백엔드에 넣으면 오히려 화면 바뀔 때마다 API도 바뀌어야 함
+- 막힌 점: 없음
+- 다음 할 일: 브라우저에서 검색→선택→토글 직접 확인(확장 연결되면), 서울시교육청교육연구정보원 승인 여부 확인
+
 ### 2026-11-10 — "참고용 예측" 안내 문구 삭제 (CLAUDE.md 규칙 변경)
 - 한 일: 화면의 이수 위험 표시마다 붙어 있던 "참고용 예측이며 학교의 공식 판정이 아닙니다" 문구를 전부 지움. 사용자가 "교육청 자료 기반으로 데이터를 넣었는데 이런 문구가 있으면 곤란하다"며 요청. 이 문구는 CLAUDE.md에 "화면에 반드시 표시한다"고 명시돼 있던 규칙이라, 그냥 화면만 지우면 문서와 안 맞아서 먼저 사용자에게 확인하고 CLAUDE.md 규칙 자체도 같이 지우기로 함(사용자가 "CLAUDE.md 규칙도 같이 바꾸고 전부 삭제" 선택)
 - 바뀐 파일: frontend/src/modules/credit/components/Disclaimer.tsx·Disclaimer.module.css(삭제), labels.ts(DISCLAIMER 상수 삭제), CreditPage.tsx·components/{RequiredCourseList,RiskAlertBanner,AssessmentDrawer}.tsx(Disclaimer import·호출 제거, AssessmentDrawer의 다 안 쓰는 `warned` 변수도 같이 제거), CLAUDE.md(목표 문단에서 해당 문장 삭제), docs/PRD.md(1장·5장·14장의 같은 문구 3곳 삭제, CLAUDE.md와 안 맞게 두지 않으려고 같이 고침)
