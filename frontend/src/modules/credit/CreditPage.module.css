@@ -1,15 +1,22 @@
+/*
+ * 넓은 화면: 왼쪽 과목 표(경고 배너·학기 탭 포함), 오른쪽 졸업 기준 카드와 남은 필수 과목. 목업과 좌우가 반대다(PRD 10장).
+ * DOM은 졸업 기준 쪽이 먼저라서, 좁은 화면에서 한 줄로 쌓이면 졸업 기준 카드가 맨 위에 온다.
+ */
 .layout {
   display: grid;
-  grid-template-columns: minmax(320px, 2fr) 3fr;
+  grid-template-columns: 3fr minmax(320px, 2fr);
   gap: var(--space-4);
   align-items: start;
 }
 
+/* 졸업 기준 카드 + 남은 필수 이수 과목 (오른쪽) */
 .column {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
   min-width: 0;
+  grid-column: 2;
+  grid-row: 1;
 }
 
 .panel {
@@ -19,10 +26,13 @@
   background: var(--color-surface);
 }
 
+/* 경고 배너 + 학기 탭 + 과목 표 (왼쪽) */
 .coursesPanel {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  grid-column: 1;
+  grid-row: 1;
 }
 
 .panelHeader {
@@ -86,5 +96,12 @@
 @media (max-width: 960px) {
   .layout {
     grid-template-columns: 1fr;
+  }
+
+  /* 위치 지정을 풀어 DOM 순서대로 쌓는다: 졸업 기준 카드 → 남은 필수 과목 → 과목 표 */
+  .column,
+  .coursesPanel {
+    grid-column: auto;
+    grid-row: auto;
   }
 }
