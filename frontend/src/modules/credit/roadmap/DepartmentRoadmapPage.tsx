@@ -9,6 +9,9 @@ import { getDepartmentDetail, searchDepartments } from './api';
 import styles from './DepartmentRoadmapPage.module.css';
 import type { DepartmentSubject, DepartmentSummary, DesignationType } from './types';
 
+// "참고: 시도교육청 예시" 섹션 표시 여부. 자료 이용 승인 전까지 화면에서 숨긴다(데이터와 API는 그대로)
+const SHOW_EDU_OFFICE_EXAMPLE = false;
+
 const DESIGNATION_LABEL: Record<DesignationType, string> = {
   CORE: '핵심',
   RECOMMENDED: '권장',
@@ -194,7 +197,8 @@ export function DepartmentRoadmapPage() {
           </p>
 
           {/* TODO: 서울시교육청교육연구정보원 자료 이용 승인 전까지 실제 배포 빌드에서는 이 섹션을 뺀다(docs/PROGRESS.md 미정) */}
-          {(department.generalElectiveText || department.careerElectiveText || department.fusionElectiveText) && (
+          {SHOW_EDU_OFFICE_EXAMPLE &&
+            (department.generalElectiveText || department.careerElectiveText || department.fusionElectiveText) && (
             <section className={styles.panel}>
               <h3 className={styles.panelTitle}>참고: 시도교육청 예시</h3>
               <p className={styles.panelSub}>목록이 전부가 아니라 "~ 등"으로 끝나요.</p>
