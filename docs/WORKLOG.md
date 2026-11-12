@@ -8,6 +8,14 @@
 - 막힌 점:
 - 다음 할 일:
 
+### 2026-11-12 — 학과 로드맵 점검 요약 한 줄 추가
+- 한 일: 학과 로드맵 화면의 학과 이름·기준 문구 아래, "전체 대학 공통 과목" 카드 위에 "다수 대학 공통 과목 N개 중 M개 등록" 한 줄 추가. N = 전체 대학 공통 과목 + 다수 대학 공통 과목(50% 이상) 수, M = 그중 강조 표시되는(이미 등록한) 과목 수. N이 0이면 숨김. 과목 분류(전체 공통/다수 공통/대학별 다름)와 강조 판단(isHighlighted = alreadyRegistered)을 roadmap/subjectGroups.ts 순수 함수로 옮겨 화면의 섹션 분류, 과목 행 강조, 요약이 같은 함수를 쓰게 함. frontend만 수정(DB·API 그대로)
+- 바뀐 파일: frontend/src/modules/credit/roadmap/(subjectGroups.ts·subjectGroups.test.ts 신규, DepartmentRoadmapPage.tsx, DepartmentRoadmapPage.module.css), docs/PROGRESS.md, docs/WORKLOG.md
+- 확인 결과: npm test 8개 파일 71개 통과(새 테스트 3개: 50% 이상만 세고 49.9%는 제외, 전체 대학 공통 과목 포함, N이 0인 경우), npm run build 통과, npm run lint 경고 0개. 확인 못 함: 브라우저 화면(백엔드를 띄워 학과를 골라 요약 줄이 보이는지, 등록 후 숫자가 바뀌는지는 보지 않음)
+- 결정과 이유: 문구는 요청대로 "다수 대학 공통 과목"으로 두되 전체 대학 공통 과목도 숫자에 포함. 숫자 강조는 기존 변수(--color-text, --color-accent)만 씀. 50% 기준은 MAJORITY_RATIO_PERCENT 상수 하나로 둠(기존 화면의 50과 같은 값)
+- 막힌 점: 없음
+- 다음 할 일: 브라우저에서 요약 줄 확인
+
 ### 2026-11-12 — 학점 현황 좌우 배치 변경
 - 한 일: 학점 현황 화면의 두 컬럼을 맞바꿈(왼쪽: 경고 배너·학기 탭·과목 표, 오른쪽: 졸업 기준 진행 카드·남은 필수 이수 과목). CSS grid의 grid-column/grid-row로 위치만 바꾸고 DOM 순서와 TSX·로직·API는 그대로 둠. 960px 이하에서는 위치 지정을 풀어 DOM 순서(졸업 기준 카드 → 필수 과목 → 과목 표)로 쌓음. PRD 10장에 목업과 좌우가 다르다는 내용 추가. main에서 브랜치 layout-swap을 만들어 작업(커밋·push 안 함, demo-ok 태그는 로컬에 없어 건드리지 않음)
 - 바뀐 파일: frontend/src/modules/credit/CreditPage.module.css, docs/PRD.md(10장), docs/PROGRESS.md(최종 갱신, 완료 한 줄), docs/WORKLOG.md

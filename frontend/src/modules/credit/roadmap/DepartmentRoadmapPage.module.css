@@ -127,6 +127,22 @@
   color: var(--color-text-muted);
 }
 
+/* 점검 요약 한 줄 (학과 이름·기준 문구 아래, 첫 카드 위) */
+.checkSummary {
+  margin: calc(-1 * var(--space-2)) 0 var(--space-4);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.checkSummary strong {
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+}
+
+.checkSummary .checkSummaryCount {
+  color: var(--color-accent);
+}
+
 .panel {
   padding: var(--space-5);
   border-radius: var(--radius-md);

@@ -7,6 +7,7 @@ import { StateMessage } from '../components/StateMessage';
 import { COURSE_TYPE_LABEL } from '../labels';
 import { getDepartmentDetail, searchDepartments } from './api';
 import styles from './DepartmentRoadmapPage.module.css';
+import { checkSummary, groupSubjects, isHighlighted } from './subjectGroups';
 import type { DepartmentSubject, DepartmentSummary, DesignationType } from './types';
 
 // "참고: 시도교육청 예시" 섹션 표시 여부. 자료 이용 승인 전까지 화면에서 숨긴다(데이터와 API는 그대로)
@@ -28,16 +29,17 @@ function RatioBar({ ratioPercent, emphasized }: { ratioPercent: number; emphasiz
 
 function SubjectRow({ subject, showUniversityToggle }: { subject: DepartmentSubject; showUniversityToggle: boolean }) {
   const [showUniversities, setShowUniversities] = useState(false);
+  const highlighted = isHighlighted(subject);
   return (
-    <div className={`${styles.subjectRow} ${subject.alreadyRegistered ? styles.registered : ''}`}>
+    <div className={`${styles.subjectRow} ${highlighted ? styles.registered : ''}`}>
       <div className={styles.subjectRowTop}>
         <span className={styles.subjectName}>{subject.name}</span>
         <span className={styles.subjectTag}>{COURSE_TYPE_LABEL[subject.courseType]}</span>
-        {subject.alreadyRegistered && <span className={styles.registeredTag}>등록함</span>}
+        {highlighted && <span className={styles.registeredTag}>등록함</span>}
         <span className={`${styles.subjectTag} ${subject.designationType === 'CORE' ? styles.subjectTagCore : ''}`}>
           {DESIGNATION_LABEL[subject.designationType]}
         </span>
-        <RatioBar ratioPercent={subject.ratioPercent} emphasized={subject.alreadyRegistered} />
+        <RatioBar ratioPercent={subject.ratioPercent} emphasized={highlighted} />
         <span className={styles.ratioText}>
           {subject.requiredUniversityCount} / {subject.totalUniversityCount}개 대학 · {Math.round(subject.ratioPercent)}%
         </span>
@@ -84,14 +86,9 @@ export function DepartmentRoadmapPage() {
 
   const department = detail.state.status === 'success' ? detail.state.data : null;
 
-  const { fullCommon, majority, split } = useMemo(() => {
-    const subjects = department?.subjects ?? [];
-    return {
-      fullCommon: subjects.filter((subject) => subject.fullCommon),
-      majority: subjects.filter((subject) => !subject.fullCommon && subject.ratioPercent >= 50),
-      split: subjects.filter((subject) => subject.ratioPercent < 50),
-    };
-  }, [department]);
+  const groups = useMemo(() => groupSubjects(department?.subjects ?? []), [department]);
+  const { fullCommon, majority, split } = groups;
+  const summary = checkSummary(groups);
 
   return (
     <>
@@ -146,6 +143,13 @@ export function DepartmentRoadmapPage() {
             {department.lowSample && <span className={styles.lowSampleChip}>표본부족</span>}
           </div>
           <p className={styles.deptMeta}>대교협 공개 자료 기준 {department.totalUniversityCount}개 대학 조사 · 2028학년도 입시 권장과목 반영</p>
+
+          {/* 점검 요약: 다수 대학 공통 과목(전체 대학 공통 포함) 중 이미 등록한 과목 수. 해당 과목이 없으면 숨긴다 */}
+          {summary.total > 0 && (
+            <p className={styles.checkSummary} data-testid="roadmap-check-summary">
+              다수 대학 공통 과목 <strong>{summary.total}개</strong> 중 <strong className={styles.checkSummaryCount}>{summary.registered}개</strong> 등록
+            </p>
+          )}
 
           <section className={styles.panel}>
             <h3 className={styles.panelTitle}>전체 대학 공통 과목</h3>
