@@ -8,6 +8,20 @@
 - 막힌 점:
 - 다음 할 일:
 
+### 2026-11-22 — 희망 학과 저장 기능
+- 한 일: 학생부 관리 공통 "희망 학과"(학생당 1개, 목표 대학은 선택). DB V8 student_goal(student_id VARCHAR(100) 유니크, department_id → credit_department FK, target_university NULL 허용, updated_at). 백엔드 새 도메인 패키지 goal(controller/service/entity/repository/dto): GET /api/student/goal(없으면 JSON null), PUT /api/student/goal(저장·변경, 학과 없으면 404, departmentId 비면·목표 대학 100자 초과면 400). 프론트 src/goal/: GoalProvider(한 번 불러와 4개 탭에 컨텍스트 제공), 상단 칩("희망 학과: ○○ · 목표 대학: △△ ✎" / "희망 학과 설정"), 설정 창(기존 /departments?query= 검색 + 목표 대학 입력). 학과 로드맵: 검색 전에는 희망 학과 자동 조회, 다른 학과 검색은 미리보기 + "희망 학과로 설정"(목표 대학 유지). 학점 현황: 희망 학과가 없으면 "학과 로드맵에서 희망 학과를 찾아보세요" 안내. api-contract.md 7장 추가(contract 마커 없음)
+- 바뀐 파일: database/migrations/V8__create_student_goal.sql, backend/src/main/java/com/learnershigh/goal/**(5개), backend/src/test/java/com/learnershigh/goal/**(서비스 7개·컨트롤러 3개 테스트), frontend/src/goal/**(신규), frontend/src/layout/AppLayout.tsx·.module.css, frontend/src/modules/credit/CreditPage.tsx·.module.css, frontend/src/modules/credit/roadmap/DepartmentRoadmapPage.tsx·.module.css, docs/api-contract.md, docs/PROGRESS.md, docs/WORKLOG.md. 수행평가·생기부 관리·성적 관리 탭 파일은 안 건드림
+- 확인 결과:
+  - 백엔드 ./gradlew test 67개 통과(새 10개). 처음에 GET이 null이면 Spring이 빈 본문을 보내 컨트롤러 테스트가 실패 → NullNode로 JSON null을 쓰도록 고쳐 통과
+  - 프론트 npm test 9개 파일 74개 통과(새 3개: 칩 문구), npm run build 통과, npm run lint 경고 0개
+  - 실제 백엔드: 8080은 이미 다른 java 프로세스(PID 31996, 이번 코드 반영 전 클래스)가 쓰고 있어 내 bootRun은 포트 충돌로 실패(직전에 Flyway가 로컬 DB를 V8까지 적용함). 그 프로세스는 건드리지 않고 8081로 띄우고, 8081을 가리키는 임시 vite 설정(확인 후 삭제)으로 5174에서 확인. curl: 처음 GET → 200 null, PUT 9999 → 404, PUT 빈 학과 → 400
+  - headless Edge(1440px) 25개 항목 통과: 칩 "희망 학과 설정"·학점 현황 안내 → 칩으로 간호학과+서울대학교 저장 → 칩 문구, 로드맵 자동 조회와 "희망 학과" 표시 → 컴퓨터공학과 미리보기(저장 안 됨 확인) → "희망 학과로 설정"(목표 대학 유지) → 학점 현황 안내 사라짐, 수행평가·생기부·성적 탭에서도 같은 칩 → 새로고침 후 유지 → 목표 대학 비우고 저장
+  - 확인 후 테스트로 저장한 student_goal 행을 지워 처음 상태(저장된 값 없음)로 되돌림. 8081·5174 서버 종료
+  - 확인 못 함: 8080에 떠 있는 기존 백엔드로는 확인 못 함(재시작해야 /api/student/goal이 생김), 목표 대학 100자 초과 400은 단위 테스트로만 확인, 좁은 화면 배치
+- 결정과 이유: 학점 모듈 밖의 공통 기능이라 백엔드 패키지 goal, 프론트 src/goal로 분리(테이블도 요청대로 student_goal, credit_ 접두사 없음). 로드맵 자동 조회는 상태를 effect로 바꾸지 않고 "검색창을 건드리기 전이면 희망 학과"로 계산
+- 막힌 점: 위 8080 포트 충돌
+- 다음 할 일: 8080 백엔드 재시작 후 화면 확인, 커밋
+
 ### 2026-11-12 — 학과 로드맵 점검 요약 한 줄 추가
 - 한 일: 학과 로드맵 화면의 학과 이름·기준 문구 아래, "전체 대학 공통 과목" 카드 위에 "다수 대학 공통 과목 N개 중 M개 등록" 한 줄 추가. N = 전체 대학 공통 과목 + 다수 대학 공통 과목(50% 이상) 수, M = 그중 강조 표시되는(이미 등록한) 과목 수. N이 0이면 숨김. 과목 분류(전체 공통/다수 공통/대학별 다름)와 강조 판단(isHighlighted = alreadyRegistered)을 roadmap/subjectGroups.ts 순수 함수로 옮겨 화면의 섹션 분류, 과목 행 강조, 요약이 같은 함수를 쓰게 함. frontend만 수정(DB·API 그대로)
 - 바뀐 파일: frontend/src/modules/credit/roadmap/(subjectGroups.ts·subjectGroups.test.ts 신규, DepartmentRoadmapPage.tsx, DepartmentRoadmapPage.module.css), docs/PROGRESS.md, docs/WORKLOG.md

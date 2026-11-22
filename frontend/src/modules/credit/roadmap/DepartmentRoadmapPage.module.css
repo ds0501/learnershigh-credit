@@ -127,6 +127,51 @@
   color: var(--color-text-muted);
 }
 
+/* 희망 학과 표시와 "희망 학과로 설정" 버튼 (학과 이름 옆) */
+.goalTag {
+  display: inline-block;
+  padding: 1px var(--space-2);
+  border: 1px solid var(--color-accent-dim);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-accent);
+  white-space: nowrap;
+}
+
+.setGoalButton {
+  padding: 1px var(--space-3);
+  border: 1px solid var(--color-accent-dim);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-accent);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.setGoalButton:hover:not(:disabled) {
+  border-color: var(--color-accent);
+}
+
+.setGoalButton:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.previewNote {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-subtle);
+}
+
+.goalError {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-risk);
+}
+
 /* 점검 요약 한 줄 (학과 이름·기준 문구 아래, 첫 카드 위) */
 .checkSummary {
   margin: calc(-1 * var(--space-2)) 0 var(--space-4);

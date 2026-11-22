@@ -66,6 +66,13 @@
   padding: var(--space-5);
 }
 
+/* 학생부 관리 상단 희망 학과 칩 줄 */
+.goalBar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--space-3);
+}
+
 @media (max-width: 600px) {
   .topBar {
     gap: var(--space-3);

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { useAsync } from '../../../api/useAsync';
+import { useGoal } from '../../../goal/goalContext';
 import { PageHeader } from '../../../layout/PageHeader';
 import { StateMessage } from '../components/StateMessage';
 import { COURSE_TYPE_LABEL } from '../labels';
@@ -59,32 +60,59 @@ function SubjectRow({ subject, showUniversityToggle }: { subject: DepartmentSubj
   );
 }
 
-// 고교학점제 관리 > 학과 로드맵. 학과를 검색하면 추천 선택과목을 보여준다
+// 고교학점제 관리 > 학과 로드맵. 학과를 검색하면 추천 선택과목을 보여준다.
+// 처음 열면 저장된 희망 학과를 자동으로 보여 주고, 다른 학과 검색은 미리보기만 한다(저장은 "희망 학과로 설정")
 export function DepartmentRoadmapPage() {
+  const { goal, saveGoal } = useGoal();
   const [query, setQuery] = useState('');
-  const [selected, setSelected] = useState<DepartmentSummary | null>(null);
+  const [selected, setSelected] = useState<{ id: string; name: string } | null>(null);
+  // 사용자가 검색창을 건드렸는지. 건드리기 전에는 희망 학과를 보여 준다
+  const [touched, setTouched] = useState(false);
   const [splitOpen, setSplitOpen] = useState(false);
+  const [goalSaving, setGoalSaving] = useState(false);
+  const [goalError, setGoalError] = useState<string | null>(null);
 
   const changeQuery = (value: string) => {
+    setTouched(true);
     setQuery(value);
     setSelected(null);
   };
 
+  // 지금 보여 줄 학과: 검색해서 고른 학과, 아직 검색 전이면 저장된 희망 학과
+  const current = selected ?? (!touched && goal ? goal.department : null);
+  const inputValue = touched ? query : (goal?.department.name ?? query);
+
   // 학과를 고르기 전, 검색어가 있을 때만 검색한다 (CourseRegisterModal의 catalog 검색과 같은 방식)
-  const keyword = selected ? '' : query.trim();
+  const keyword = current ? '' : query.trim();
   const results = useAsync(`dept-search:${keyword}`, () => (keyword ? searchDepartments(keyword) : Promise.resolve([])));
 
-  const detail = useAsync(`dept-detail:${selected?.id ?? ''}`, () =>
-    selected ? getDepartmentDetail(selected.id) : Promise.resolve(null),
+  const detail = useAsync(`dept-detail:${current?.id ?? ''}`, () =>
+    current ? getDepartmentDetail(current.id) : Promise.resolve(null),
   );
 
   const selectDepartment = (item: DepartmentSummary) => {
+    setTouched(true);
     setQuery(item.name);
-    setSelected(item);
+    setSelected({ id: item.id, name: item.name });
     setSplitOpen(false);
+    setGoalError(null);
   };
 
   const department = detail.state.status === 'success' ? detail.state.data : null;
+  const isGoalDepartment = Boolean(department && goal && goal.department.id === department.id);
+
+  // 미리보기 중인 학과를 희망 학과로 저장한다. 목표 대학은 기존 값을 그대로 둔다
+  const setAsGoal = async (departmentId: string) => {
+    setGoalSaving(true);
+    setGoalError(null);
+    try {
+      await saveGoal(departmentId, goal?.targetUniversity ?? null);
+    } catch {
+      setGoalError('희망 학과로 설정하지 못했습니다. 잠시 후 다시 시도하세요.');
+    } finally {
+      setGoalSaving(false);
+    }
+  };
 
   const groups = useMemo(() => groupSubjects(department?.subjects ?? []), [department]);
   const { fullCommon, majority, split } = groups;
@@ -107,7 +135,7 @@ export function DepartmentRoadmapPage() {
           type="text"
           className={styles.searchInput}
           placeholder="학과명을 검색하세요 (예: 간호학과)"
-          value={query}
+          value={inputValue}
           onChange={(event) => changeQuery(event.target.value)}
         />
         {keyword && results.state.status === 'success' && results.state.data.length > 0 && (
@@ -130,10 +158,10 @@ export function DepartmentRoadmapPage() {
         )}
       </div>
 
-      {!selected && <p className={styles.hint}>학과명을 입력하면 자동완성으로 찾을 수 있어요.</p>}
+      {!current && <p className={styles.hint}>학과명을 입력하면 자동완성으로 찾을 수 있어요.</p>}
 
-      {selected && detail.state.status === 'loading' && <StateMessage kind="loading" />}
-      {selected && detail.state.status === 'error' && <StateMessage kind="error" onRetry={detail.reload} />}
+      {current && detail.state.status === 'loading' && <StateMessage kind="loading" />}
+      {current && detail.state.status === 'error' && <StateMessage kind="error" onRetry={detail.reload} />}
 
       {department && (
         <>
@@ -141,7 +169,32 @@ export function DepartmentRoadmapPage() {
             <h2 className={styles.deptName}>{department.name}</h2>
             {department.field && <span className={styles.chip}>{department.field}</span>}
             {department.lowSample && <span className={styles.lowSampleChip}>표본부족</span>}
+            {isGoalDepartment ? (
+              <span className={styles.goalTag} data-testid="roadmap-goal-tag">
+                희망 학과
+              </span>
+            ) : (
+              <button
+                type="button"
+                className={styles.setGoalButton}
+                data-action="set-goal"
+                disabled={goalSaving}
+                onClick={() => setAsGoal(department.id)}
+              >
+                {goalSaving ? '저장 중...' : '희망 학과로 설정'}
+              </button>
+            )}
           </div>
+          {goalError && (
+            <p className={styles.goalError} role="alert">
+              {goalError}
+            </p>
+          )}
+          {!isGoalDepartment && goal && (
+            <p className={styles.previewNote} data-testid="roadmap-preview-note">
+              미리보기 중이에요. 저장된 희망 학과는 {goal.department.name}입니다.
+            </p>
+          )}
           <p className={styles.deptMeta}>대교협 공개 자료 기준 {department.totalUniversityCount}개 대학 조사 · 2028학년도 입시 권장과목 반영</p>
 
           {/* 점검 요약: 다수 대학 공통 과목(전체 대학 공통 포함) 중 이미 등록한 과목 수. 해당 과목이 없으면 숨긴다 */}

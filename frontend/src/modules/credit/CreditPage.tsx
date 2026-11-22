@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import { useAsync } from '../../api/useAsync';
+import { useGoal } from '../../goal/goalContext';
 import { CompassIcon } from '../../layout/icons';
 import { PageHeader } from '../../layout/PageHeader';
 import { getCourses, getRequiredCourses, getSummary } from './api';
@@ -24,6 +25,7 @@ export function CreditPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedTerm = TERMS.find((option) => option.key === searchParams.get('term')) ?? TERMS.find((option) => option.key === CURRENT_TERM_KEY)!;
 
+  const { status: goalStatus, goal } = useGoal();
   const summary = useAsync('summary', getSummary);
   const required = useAsync('required-courses', getRequiredCourses);
   const courses = useAsync(`courses-${selectedTerm.key}`, () => getCourses(selectedTerm.gradeYear, selectedTerm.term));
@@ -70,6 +72,13 @@ export function CreditPage() {
           </>
         }
       />
+
+      {/* 희망 학과가 없으면 학과 로드맵으로 안내한다 */}
+      {goalStatus === 'success' && !goal && (
+        <p className={styles.goalHint} data-testid="credit-goal-hint">
+          <Link to="/credit/roadmap">학과 로드맵에서 희망 학과를 찾아보세요</Link>
+        </p>
+      )}
 
       <div className={styles.layout}>
         <div className={styles.column}>

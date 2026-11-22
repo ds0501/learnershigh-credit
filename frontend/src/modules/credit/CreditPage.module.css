@@ -87,6 +87,20 @@
   background: var(--color-accent-strong);
 }
 
+/* 희망 학과가 없을 때 학과 로드맵 안내 */
+.goalHint {
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px dashed var(--color-accent-dim);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+}
+
+.goalHint a {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
 .hint {
   margin: 0;
   font-size: var(--font-size-xs);

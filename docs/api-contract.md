@@ -742,3 +742,55 @@ GET /courses/{courseId}의 응답. `CourseItem`의 모든 필드에 아래를 �
 |---|---|
 | `credit_completion_rule` (`course_type`, `effective_year`, `min_attendance`, `min_achievement`) | 최소 출석률, 공통 최소 성취율 |
 | `credit_graduation_rule` (`effective_year`, `total_credits`, `subject_credits`, `creative_credits`) | 졸업 학점 |
+
+## 7. 학생부 관리 공통: 희망 학과 (`/api/student/goal`)
+
+학생부 관리의 모든 탭(학점 현황, 수행평가, 생기부 관리, 성적 관리)이 같은 값을 쓰는 학생의 희망 학과와 목표 대학이다. 학생당 1개이고, 지금은 데모 학생 고정이다.
+- 학점 모듈 API가 아니라서 경로 접두사가 `/api/student/credit`가 아니라 **`/api/student/goal`**이다. JSON·ID·오류 형식은 1장과 같다.
+- 이 장의 예시는 실제 백엔드(로컬)를 호출해 받은 응답이다. contract.test.ts 비교 대상이 아니라서 `<!-- contract:… -->` 표시를 붙이지 않는다.
+- DB: `student_goal` (V8). `student_id`(VARCHAR(100), 유니크), `department_id`(→ `credit_department.id`), `target_university`(VARCHAR(100), NULL 허용), `updated_at`.
+
+### 7.1 GET /api/student/goal
+저장된 희망 학과와 목표 대학. 저장된 값이 없으면 **200에 본문이 JSON `null`**이다(빈 본문이 아님).
+
+응답 200 (저장된 값 없음)
+```json
+null
+```
+
+응답 200 (저장됨)
+```json
+{
+  "department": { "id": "36", "name": "간호학과", "field": "보건·의약학" },
+  "targetUniversity": "서울대학교"
+}
+```
+
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `department.id` | string | 학과 ID (`credit_department.id`) |
+| `department.name` | string | 학과명 |
+| `department.field` | string \| null | 계열 (예: 보건·의약학) |
+| `targetUniversity` | string \| null | 목표 대학. 입력하지 않았으면 `null` |
+
+### 7.2 PUT /api/student/goal
+저장 또는 변경(없으면 만들고, 있으면 바꾼다). 응답은 저장된 값(7.1과 같은 모양), 200.
+
+요청
+```json
+{ "departmentId": "36", "targetUniversity": "서울대학교" }
+```
+
+| 필드 | 필수 | 설명 |
+|---|---|---|
+| `departmentId` | 예 | 학과 ID |
+| `targetUniversity` | 아니오 | 앞뒤 공백을 빼고 저장한다. 없거나 비어 있으면 `null`로 저장(기존 값도 지워짐) |
+
+검증과 실패 응답
+| 조건 | 응답 |
+|---|---|
+| `departmentId`가 없거나 비어 있음 | 400 `{ "message": "입력값을 확인하세요.", "fieldErrors": { "departmentId": "희망 학과를 선택하세요." } }` |
+| `targetUniversity`가 100자를 넘음 | 400 `fieldErrors.targetUniversity`: "목표 대학은 100자 이하로 입력하세요." |
+| 없는 학과 ID(숫자가 아닌 값 포함) | 404 `{ "message": "학과를 찾을 수 없습니다.", "fieldErrors": {} }` |
+
+- 프론트: `frontend/src/goal/`(api.ts, GoalProvider)에서 한 번 불러와 컨텍스트로 모든 탭에 제공한다. 학과 검색은 기존 `GET /api/student/credit/departments?query=`를 그대로 쓴다.
