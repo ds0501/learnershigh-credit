@@ -23,3 +23,8 @@ export function saveDraft(draftId: string, content: DraftContent) {
 export function submitDraft(draftId: string) {
   return apiRequest<RecordDraft>('POST', `${BASE}/${encodeURIComponent(draftId)}/submit`, { forceReal: true });
 }
+
+// 제출 취소: SUBMITTED → DRAFT
+export function withdrawDraft(draftId: string) {
+  return apiRequest<RecordDraft>('POST', `${BASE}/${encodeURIComponent(draftId)}/withdraw`, { forceReal: true });
+}

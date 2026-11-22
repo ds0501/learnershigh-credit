@@ -242,6 +242,50 @@ class RecordDraftServiceTest {
 		assertThat(draft.getStatus()).isEqualTo(DraftStatus.DRAFT);
 	}
 
+	// 제출 취소
+
+	@Test
+	void 제출_취소하면_DRAFT로_돌아가고_제출_시각이_지워지며_다시_저장할_수_있다() {
+		RecordDraft draft = draft(5L, "1-2", "공통수학2", 12L, DraftSource.NEW, DraftStatus.DRAFT, new DraftContent("동기", "", "", "", null, null));
+		draft.submit(LocalDateTime.of(2026, 11, 20, 10, 0));
+		ReflectionTestUtils.setField(draft, "teacherComment", "구체적으로");
+		when(draftRepository.findById(5L)).thenReturn(Optional.of(draft));
+
+		RecordDraftResponse response = service.withdraw("5");
+
+		assertThat(response.status()).isEqualTo("DRAFT");
+		assertThat(response.submittedAt()).isNull();
+		assertThat(response.teacherComment()).isEqualTo("구체적으로");
+		assertThat(service.save("5", new SaveRecordDraftRequest("고친 동기", "", "", "", null, null)).motive()).isEqualTo("고친 동기");
+	}
+
+	@Test
+	void 제출_상태가_아니면_제출_취소_거부_확인_완료와_과거_기록은_계속_수정_불가() {
+		for (DraftStatus status : List.of(DraftStatus.DRAFT, DraftStatus.REVISION_REQUESTED, DraftStatus.CONFIRMED)) {
+			RecordDraft draft = draft(5L, "1-2", "공통수학2", 12L, DraftSource.NEW, status, new DraftContent("동기", "", "", "", null, null));
+			when(draftRepository.findById(5L)).thenReturn(Optional.of(draft));
+
+			ValidationException exception = assertThrows(ValidationException.class, () -> service.withdraw("5"));
+
+			assertThat(exception.getMessage()).isEqualTo("제출한 세특만 제출을 취소할 수 있습니다.");
+			assertThat(exception.getFieldErrors()).isEmpty();
+			assertThat(draft.getStatus()).isEqualTo(status);
+		}
+
+		RecordDraft past = draft(7L, "1-1", "독서", null, DraftSource.PAST, DraftStatus.CONFIRMED, new DraftContent("기록", "", "", "", null, null));
+		when(draftRepository.findById(7L)).thenReturn(Optional.of(past));
+		assertThrows(ValidationException.class, () -> service.withdraw("7"));
+		assertThrows(ValidationException.class, () -> service.save("7", new SaveRecordDraftRequest("바꿈", "", "", "", null, null)));
+		assertThat(past.getStatus()).isEqualTo(DraftStatus.CONFIRMED);
+		assertThat(past.getMotive()).isEqualTo("기록");
+	}
+
+	@Test
+	void 없는_세특_제출_취소는_404() {
+		when(draftRepository.findById(404L)).thenReturn(Optional.empty());
+		assertThrows(NotFoundException.class, () -> service.withdraw("404"));
+	}
+
 	@Test
 	void 없는_세특이면_404() {
 		when(draftRepository.findById(404L)).thenReturn(Optional.empty());

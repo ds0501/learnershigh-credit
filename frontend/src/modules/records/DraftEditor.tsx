@@ -4,8 +4,8 @@ import { ApiError } from '../../api/errors';
 import { useAsync } from '../../api/useAsync';
 import { useGoal } from '../../goal/goalContext';
 import { PageHeader } from '../../layout/PageHeader';
-import { createDraft, getDraft, saveDraft, submitDraft } from './api';
-import { CARD_LABEL, cardKind, CONTENT_FIELDS, initialCareerLink, isContentBlank, isEditable, semesterLabel } from './labels';
+import { createDraft, getDraft, saveDraft, submitDraft, withdrawDraft } from './api';
+import { canWithdraw, CARD_LABEL, cardKind, CONTENT_FIELDS, initialCareerLink, isContentBlank, isEditable, semesterLabel } from './labels';
 import type { DraftContent, RecordDraft, RecordDraftCard } from './types';
 import styles from './Records.module.css';
 
@@ -87,6 +87,8 @@ function DraftForm({ card, draft, notice, onNotice, onSaved }: DraftFormProps) {
   const [error, setError] = useState<string | null>(null);
   // 제출은 되돌릴 수 없어 브라우저 확인 창 대신 버튼 자리를 확인 문구로 바꾼다
   const [confirmingSubmit, setConfirmingSubmit] = useState(false);
+  // 제출 취소도 같은 2단계 확인
+  const [confirmingWithdraw, setConfirmingWithdraw] = useState(false);
 
   const content = (): DraftContent => ({
     ...values,
@@ -113,6 +115,7 @@ function DraftForm({ card, draft, notice, onNotice, onSaved }: DraftFormProps) {
     } finally {
       setBusy(false);
       setConfirmingSubmit(false);
+      setConfirmingWithdraw(false);
     }
   };
 
@@ -126,6 +129,12 @@ function DraftForm({ card, draft, notice, onNotice, onSaved }: DraftFormProps) {
     }
     setError(null);
     setConfirmingSubmit(true);
+  };
+
+  // 제출 취소 → 작성 중(DRAFT). 상태가 바뀌어 편집 화면으로 다시 그린다
+  const withdraw = () => {
+    if (!draft) return;
+    run(() => withdrawDraft(draft.id), '제출을 취소했어요. 다시 고칠 수 있어요.');
   };
 
   const submit = () =>
@@ -192,7 +201,7 @@ function DraftForm({ card, draft, notice, onNotice, onSaved }: DraftFormProps) {
         <div className={styles.actions}>
           {confirmingSubmit ? (
             <div className={styles.confirm}>
-              <span>제출하면 선생님 확인 전까지 고칠 수 없어요. 제출할까요?</span>
+              <span>제출한 뒤에도 "제출 취소"로 다시 고칠 수 있어요. 제출할까요?</span>
               <button type="button" className={styles.primaryButton} data-action="confirm-submit" disabled={busy} onClick={submit}>
                 {busy ? '제출 중...' : '제출'}
               </button>
@@ -215,6 +224,42 @@ function DraftForm({ card, draft, notice, onNotice, onSaved }: DraftFormProps) {
                 제출
               </button>
             </>
+          )}
+        </div>
+      )}
+
+      {/* 제출 취소: 참고용 프로그램이라 제출한 뒤에도 다시 고칠 수 있다(확인 완료·기존 기록은 제외) */}
+      {draft && canWithdraw(status) && (
+        <div className={styles.actions}>
+          {confirmingWithdraw ? (
+            <div className={styles.confirm}>
+              <span>제출을 취소할까요? 취소하면 "작성 중"으로 돌아가 다시 고칠 수 있어요.</span>
+              <button type="button" className={styles.primaryButton} data-action="confirm-withdraw" disabled={busy} onClick={withdraw}>
+                {busy ? '취소 중...' : '제출 취소'}
+              </button>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                data-action="close-withdraw"
+                disabled={busy}
+                onClick={() => setConfirmingWithdraw(false)}
+              >
+                닫기
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              data-action="withdraw-draft"
+              onClick={() => {
+                onNotice(null);
+                setError(null);
+                setConfirmingWithdraw(true);
+              }}
+            >
+              제출 취소
+            </button>
           )}
         </div>
       )}

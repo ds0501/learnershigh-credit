@@ -54,4 +54,9 @@ public class RecordDraftController {
 		return draftService.submit(draftId);
 	}
 
+	@PostMapping("/{draftId}/withdraw")
+	public RecordDraftResponse withdraw(@PathVariable String draftId) {
+		return draftService.withdraw(draftId);
+	}
+
 }

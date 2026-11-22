@@ -100,6 +100,13 @@ public class RecordDraft {
 		this.updatedAt = now;
 	}
 
+	// 제출 취소: 다시 작성 중으로 되돌리고 제출 시각을 지운다(서비스에서 SUBMITTED인지 확인한 뒤 부른다)
+	public void withdraw(LocalDateTime now) {
+		this.status = DraftStatus.DRAFT;
+		this.submittedAt = null;
+		this.updatedAt = now;
+	}
+
 	private void applyContent(DraftContent content, LocalDateTime now) {
 		this.motive = content.motive();
 		this.process = content.process();

@@ -25,6 +25,7 @@ import com.learnershigh.record.dto.RecordDraftResponse;
 import com.learnershigh.record.dto.SaveRecordDraftRequest;
 import com.learnershigh.record.entity.DraftContent;
 import com.learnershigh.record.entity.DraftSource;
+import com.learnershigh.record.entity.DraftStatus;
 import com.learnershigh.record.entity.RecordDraft;
 import com.learnershigh.record.repository.RecordDraftRepository;
 
@@ -152,6 +153,18 @@ public class RecordDraftService {
 			throw new ValidationException("내용을 한 칸 이상 입력한 뒤 제출하세요.", Map.of());
 		}
 		draft.submit(LocalDateTime.now());
+		return RecordDraftResponse.from(draft);
+	}
+
+	// 제출 취소. 참고용 프로그램이라 제출한 뒤에도 학생이 다시 고칠 수 있게 SUBMITTED만 DRAFT로 되돌린다.
+	// 확인 완료(CONFIRMED, 과거 기록 포함)와 작성 중·수정 요청은 취소할 것이 없어 거부한다
+	@Transactional
+	public RecordDraftResponse withdraw(String draftId) {
+		RecordDraft draft = findOwnDraft(draftId);
+		if (draft.getStatus() != DraftStatus.SUBMITTED) {
+			throw new ValidationException("제출한 세특만 제출을 취소할 수 있습니다.", Map.of());
+		}
+		draft.withdraw(LocalDateTime.now());
 		return RecordDraftResponse.from(draft);
 	}
 

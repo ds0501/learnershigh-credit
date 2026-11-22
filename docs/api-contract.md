@@ -809,7 +809,18 @@ null
 | `source` | `NEW`(이번에 작성하는 초안), `PAST`(이미 확정된 과거 기록을 옮겨 적은 것) |
 | `status` | `DRAFT`(작성 중), `SUBMITTED`(제출), `REVISION_REQUESTED`(수정 요청), `CONFIRMED`(확인 완료). 과거 기록은 항상 `CONFIRMED`. 목록 카드에서만 `NONE`(초안 없음) |
 
-학생이 고칠 수 있는 상태(저장·제출)는 `DRAFT`, `REVISION_REQUESTED`뿐이다. 그 밖에는 400 "제출했거나 확인이 끝난 세특은 수정할 수 없습니다."
+학생이 고칠 수 있는 상태(저장·제출)는 `DRAFT`, `REVISION_REQUESTED`뿐이다. 그 밖에는 400 "제출했거나 확인이 끝난 세특은 수정할 수 없습니다." 이 프로그램은 참고용이라 제출(`SUBMITTED`)한 뒤에도 학생이 "제출 취소"(8.6)로 `DRAFT`에 되돌려 다시 고칠 수 있다. `CONFIRMED`(과거 기록 포함)는 계속 고칠 수도 취소할 수도 없다.
+
+상태 전이 (학생 쪽. 선생님 쪽 전이는 아직 API가 없다)
+| 지금 상태 | 동작 | 다음 상태 |
+|---|---|---|
+| (없음) | POST `/drafts` `source: NEW` | `DRAFT` |
+| (없음) | POST `/drafts` `source: PAST` | `CONFIRMED` |
+| `DRAFT`, `REVISION_REQUESTED` | PUT `/drafts/{id}` | 그대로 |
+| `DRAFT`, `REVISION_REQUESTED` | POST `/drafts/{id}/submit` | `SUBMITTED` |
+| `SUBMITTED` | POST `/drafts/{id}/withdraw` | `DRAFT` (`submittedAt` 지움) |
+| `SUBMITTED` | (선생님, 예정) 수정 요청 / 확인 | `REVISION_REQUESTED` / `CONFIRMED` |
+| `CONFIRMED` | 없음 (저장·제출·제출 취소 모두 400) | — |
 
 ### 8.1 GET /api/student/record/drafts?semester=1-2
 학기별 세특 카드. 그 학기에 등록한 과목(창체 제외)을 등록 순서로 먼저 두고, 초안이 없으면 `status: "NONE"` 카드(`id`·`source`·`updatedAt`은 null)로 보여 준다. 초안은 `courseId`로, 연결이 끊긴 초안은 과목명(공백·대소문자 무시)으로 등록 과목에 붙인다. 등록 과목에 붙지 않은 초안(과거 기록 등)은 그 뒤에 만든 순서로 둔다.
@@ -883,5 +894,11 @@ null
 - 4칸이 모두 비어 있으면(공백만 포함) 400 "내용을 한 칸 이상 입력한 뒤 제출하세요." (fieldErrors 빈 객체)
 - `DRAFT`, `REVISION_REQUESTED`가 아니면 400 "제출했거나 확인이 끝난 세특은 수정할 수 없습니다.", 없으면 404
 - 선생님 코멘트는 제출해도 지우지 않는다.
+
+### 8.6 POST /api/student/record/drafts/{id}/withdraw
+제출 취소. `SUBMITTED`일 때만 `DRAFT`로 되돌리고 `submittedAt`을 `null`로 지운다. 본문 없음. 응답 200, 8.2 상세(4칸 내용과 선생님 코멘트는 그대로).
+- `SUBMITTED`가 아니면(`DRAFT`, `REVISION_REQUESTED`, `CONFIRMED`, 과거 기록 포함) 400 `{ "message": "제출한 세특만 제출을 취소할 수 있습니다.", "fieldErrors": {} }`
+- 없으면 404 "세특을 찾을 수 없습니다."
+- 화면: 제출 상태의 읽기 전용 화면에 "제출 취소" 버튼. 브라우저 확인 창 대신 "제출을 취소할까요? [제출 취소] [닫기]" 2단계로 확인한다.
 
 프론트: `frontend/src/modules/records/`. 진로 연결이 비어 있으면 화면이 희망 학과 이름(7장)을 기본값으로 채운다(저장 전까지는 화면에만 있음).

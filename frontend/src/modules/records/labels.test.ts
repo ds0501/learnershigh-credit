@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { CARD_LABEL, cardKind, initialCareerLink, isContentBlank, isEditable } from './labels';
+import { canWithdraw, CARD_LABEL, cardKind, initialCareerLink, isContentBlank, isEditable } from './labels';
 
 describe('세특 카드 상태 문구', () => {
   it('초안 없음, 작성 중, 제출, 확인 완료, 수정 요청', () => {
@@ -21,6 +21,16 @@ describe('세특 카드 상태 문구', () => {
     expect(isEditable('REVISION_REQUESTED')).toBe(true);
     expect(isEditable('SUBMITTED')).toBe(false);
     expect(isEditable('CONFIRMED')).toBe(false);
+  });
+});
+
+describe('제출 취소', () => {
+  it('제출 상태에서만 제출 취소할 수 있다(확인 완료·기존 기록·작성 중·수정 요청은 안 됨)', () => {
+    expect(canWithdraw('SUBMITTED')).toBe(true);
+    expect(canWithdraw('CONFIRMED')).toBe(false);
+    expect(canWithdraw('DRAFT')).toBe(false);
+    expect(canWithdraw('REVISION_REQUESTED')).toBe(false);
+    expect(canWithdraw('NONE')).toBe(false);
   });
 });
 

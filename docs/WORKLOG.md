@@ -8,6 +8,18 @@
 - 막힌 점:
 - 다음 할 일:
 
+### 2026-11-22 — 세특 제출 취소
+- 한 일: 참고용 프로그램이라 제출한 뒤에도 학생이 고칠 수 있게 "제출 취소" 추가. POST /api/student/record/drafts/{id}/withdraw: SUBMITTED일 때만 DRAFT로 되돌리고 submitted_at을 비움, 그 밖의 상태(DRAFT·REVISION_REQUESTED·CONFIRMED, 과거 기록 포함)는 400 "제출한 세특만 제출을 취소할 수 있습니다."(fieldErrors 빈 객체). CONFIRMED·PAST는 계속 저장·제출·취소 불가. 화면: 제출 상태의 읽기 전용 화면에 "제출 취소" 버튼, 2단계 확인("제출을 취소할까요? [제출 취소] [닫기]"), 취소하면 "작성 중"으로 다시 편집. 제출 확인 문구를 "제출한 뒤에도 "제출 취소"로 다시 고칠 수 있어요. 제출할까요?"로 바꿈. api-contract.md 8장에 상태 전이 표와 8.6 추가(마커 없음)
+- 바뀐 파일: backend record(RecordDraft.withdraw, RecordDraftService.withdraw, RecordDraftController, RecordDraftServiceTest), frontend/src/modules/records/(api.ts, DraftEditor.tsx, labels.ts canWithdraw, labels.test.ts), docs/api-contract.md, docs/PROGRESS.md, docs/WORKLOG.md
+- 확인 결과:
+  - 백엔드 ./gradlew test 84개 통과(새 3개). 프론트 npm run build 통과, npm run lint 경고 0개, npm test 10개 파일 80개 통과(새 1개). 단 npm test는 중간에 4번 연속 모든 파일이 "Cannot read properties of undefined (reading 'config')"로 실패(테스트 0개 실행) → 코드·설정 변경 없이 다시 돌리니 통과. 원인은 못 찾음(같은 시각 다른 사람이 npm run dev를 다시 띄움)
+  - 실제 백엔드: 8080·5173은 다른 사람 프로세스라 건드리지 않고 8081 백엔드 + 임시 vite 설정(5174, 확인 후 삭제)으로 확인. DB에 이미 있던 공통국어2 초안(id 7, SUBMITTED)은 건드리지 않고 음악·확인용 과거 기록으로 확인. headless Edge 16개 통과: 새 제출 확인 문구, 제출 → 읽기 전용 + "제출 취소" 버튼, 2단계 확인(닫기 → 그대로 / 제출 취소 → 작성 중, 4칸 편집, 안내 문구), API DRAFT·submittedAt null·내용 유지, 다시 고쳐 저장·제출, API로 작성 중 withdraw 400·없는 id 404, 과거 기록 withdraw·PUT 400·화면에 버튼 없음, 공통국어2 초안 그대로
+  - 확인 후 내가 만든 행(id 8, 9)만 지움. 8081·5174 종료
+  - 확인 못 함: 8080 기존 백엔드로는 확인 못 함(재시작 필요), REVISION_REQUESTED 상태에서 화면에 "제출 취소"가 안 보이는 것(단위 테스트·canWithdraw로만 확인)
+- 결정과 이유: 제출 취소해도 선생님 코멘트는 지우지 않음(다시 고칠 때 참고). 오류 형식은 기존대로 400
+- 막힌 점: npm test 일시 실패(위)
+- 다음 할 일: 선생님 화면과 확인 API, 커밋
+
 ### 2026-11-22 — 생기부 세특 초안 작성·제출
 - 한 일: DB V9 record_draft(학생·학기·과목명 유니크, course_id → credit_student_course ON DELETE SET NULL, source NEW/PAST, status 4종, PAST는 CHECK로 CONFIRMED만). 백엔드 새 도메인 패키지 record: GET /api/student/record/drafts?semester=(등록 과목 중 초안 없는 것은 NONE 카드, 창체 제외, 과거 기록은 뒤에), GET·PUT /drafts/{id}(DRAFT·REVISION_REQUESTED만 저장), POST /drafts(NEW→DRAFT, PAST→CONFIRMED, 중복 400), POST /drafts/{id}/submit(4칸 모두 비면 400). 프론트 modules/records: 학기 탭(?semester=), 세특 카드(초안 없음·작성 중·제출·확인 완료·수정 요청·기존 기록), 4칸 화면(진로 연결이 비면 희망 학과 이름 기본값, 저장·제출, 제출은 브라우저 confirm 대신 2단계 확인, 제출 뒤 읽기 전용, 선생님 코멘트 표시), 과거 기록 추가 창. 상단 역할 전환(src/role, 학생/선생님)과 선생님 모드의 빈 TeacherRecordPage("준비 중"). api-contract.md 8장(contract 마커 없음)
 - 바뀐 파일: database/migrations/V9__create_record_draft.sql, backend/.../record/**(11개), backend/src/test/.../record/service/RecordDraftServiceTest.java, frontend/src/role/**(신규), frontend/src/modules/records/**(RecordsPage 교체, 나머지 신규), frontend/src/layout/AppLayout.tsx·.module.css, docs/api-contract.md, docs/PROGRESS.md, docs/WORKLOG.md

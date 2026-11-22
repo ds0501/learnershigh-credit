@@ -42,6 +42,11 @@ export function isEditable(status: DraftStatus | 'NONE'): boolean {
   return status === 'NONE' || status === 'DRAFT' || status === 'REVISION_REQUESTED';
 }
 
+// 제출 취소는 제출(SUBMITTED) 상태에서만 할 수 있다(백엔드 POST /drafts/{id}/withdraw와 같다). 확인 완료·기존 기록은 안 된다
+export function canWithdraw(status: DraftStatus | 'NONE'): boolean {
+  return status === 'SUBMITTED';
+}
+
 // 4칸 (화면 순서)
 export const CONTENT_FIELDS: { key: 'motive' | 'process' | 'result' | 'careerLink'; label: string; placeholder: string }[] = [
   { key: 'motive', label: '탐구 동기', placeholder: '이 활동을 시작하게 된 계기나 궁금했던 점' },
