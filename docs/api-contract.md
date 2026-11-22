@@ -794,3 +794,94 @@ null
 | 없는 학과 ID(숫자가 아닌 값 포함) | 404 `{ "message": "학과를 찾을 수 없습니다.", "fieldErrors": {} }` |
 
 - 프론트: `frontend/src/goal/`(api.ts, GoalProvider)에서 한 번 불러와 컨텍스트로 모든 탭에 제공한다. 학과 검색은 기존 `GET /api/student/credit/departments?query=`를 그대로 쓴다.
+
+## 8. 생기부 관리: 세특 초안 (`/api/student/record/drafts`)
+
+과목별 세특(세부능력 및 특기사항) 초안을 학기별로 정리하고 작성·제출한다. 데모 학생 고정. 선생님 확인(코멘트, 수정 요청, 확인 완료)과 AI는 아직 없다.
+- 경로 접두사는 `/api/student/record`. JSON·ID·오류 형식은 1장과 같다. 일시(`submittedAt`, `createdAt`, `updatedAt`)는 `YYYY-MM-DDTHH:mm:ss`.
+- 이 장의 예시는 실제 백엔드(로컬)를 호출해 받은 응답이다. contract.test.ts 비교 대상이 아니라서 `<!-- contract:… -->` 표시를 붙이지 않는다.
+- DB: `record_draft` (V9). (`student_id`, `semester`, `subject_name`)은 하나만 있다. `course_id`는 `credit_student_course.id`(과목을 지우면 NULL).
+
+값
+| 필드 | 값 |
+|---|---|
+| `semester` | `'1-1'`, `'1-2'`, `'2-1'`, `'2-2'`, `'3-1'`, `'3-2'` (학년-학기) |
+| `source` | `NEW`(이번에 작성하는 초안), `PAST`(이미 확정된 과거 기록을 옮겨 적은 것) |
+| `status` | `DRAFT`(작성 중), `SUBMITTED`(제출), `REVISION_REQUESTED`(수정 요청), `CONFIRMED`(확인 완료). 과거 기록은 항상 `CONFIRMED`. 목록 카드에서만 `NONE`(초안 없음) |
+
+학생이 고칠 수 있는 상태(저장·제출)는 `DRAFT`, `REVISION_REQUESTED`뿐이다. 그 밖에는 400 "제출했거나 확인이 끝난 세특은 수정할 수 없습니다."
+
+### 8.1 GET /api/student/record/drafts?semester=1-2
+학기별 세특 카드. 그 학기에 등록한 과목(창체 제외)을 등록 순서로 먼저 두고, 초안이 없으면 `status: "NONE"` 카드(`id`·`source`·`updatedAt`은 null)로 보여 준다. 초안은 `courseId`로, 연결이 끊긴 초안은 과목명(공백·대소문자 무시)으로 등록 과목에 붙인다. 등록 과목에 붙지 않은 초안(과거 기록 등)은 그 뒤에 만든 순서로 둔다.
+- `semester`가 없거나 틀리면 400 `fieldErrors.semester`: "학기를 선택하세요."
+
+응답 200 (초안이 하나도 없을 때, 앞 2개만)
+```json
+{
+  "semester": "1-2",
+  "items": [
+    { "id": null, "semester": "1-2", "subjectName": "공통국어2", "courseId": "11", "source": null, "status": "NONE", "updatedAt": null },
+    { "id": null, "semester": "1-2", "subjectName": "공통수학2", "courseId": "12", "source": null, "status": "NONE", "updatedAt": null }
+  ]
+}
+```
+
+### 8.2 GET /api/student/record/drafts/{id}
+세특 상세. 없으면 404 "세특을 찾을 수 없습니다."
+
+응답 200
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `id`, `semester`, `subjectName`, `courseId`, `source`, `status` | | 위 표와 같음. `courseId`는 null 가능 |
+| `motive`, `process`, `result`, `careerLink` | string | 4칸(탐구 동기, 활동 과정, 결과와 배운 점, 진로 연결). 비어 있으면 `""` |
+| `guidelineTitle`, `guidelineDetail` | string \| null | 가이드라인(지금 화면에서는 쓰지 않음) |
+| `teacherComment` | string \| null | 선생님 코멘트 |
+| `submittedAt` | string \| null | 마지막 제출 일시 |
+| `createdAt`, `updatedAt` | string | 만든·고친 일시 |
+
+### 8.3 POST /api/student/record/drafts
+새 초안 또는 과거 기록 만들기. 응답 201, 8.2 상세.
+
+요청
+| 필드 | 필수 | 설명 |
+|---|---|---|
+| `semester` | 예 | 학년-학기 |
+| `source` | 예 | `NEW` 또는 `PAST` |
+| `courseId` | 아니오 | `NEW`일 때 등록 과목 ID. 있으면 과목명은 그 과목 이름을 쓴다. `PAST`면 무시 |
+| `subjectName` | `courseId`가 없으면 예 | 과목명(앞뒤 공백 제거, 100자 이하) |
+| `motive`, `process`, `result`, `careerLink` | 아니오 | 없으면 `""` |
+| `guidelineTitle`, `guidelineDetail` | 아니오 | 공백이면 null |
+
+- `NEW` → `DRAFT`, `PAST` → `CONFIRMED`로 저장.
+
+검증과 실패 응답
+| 조건 | 응답 |
+|---|---|
+| 학기가 없거나 틀림 | 400 `fieldErrors.semester`: "학기를 선택하세요." |
+| `source`가 NEW·PAST가 아님 | 400 `fieldErrors.source`: "기록 종류(NEW 또는 PAST)를 선택하세요." |
+| 과목명이 비어 있음 / 100자 초과 | 400 `fieldErrors.subjectName`: "과목명을 입력하세요." / "과목명은 100자 이하로 입력하세요." |
+| 같은 학기에 같은 과목명이 이미 있음 | 400 `fieldErrors.subjectName`: "이 학기에 같은 과목의 세특이 이미 있습니다." |
+| `courseId`가 다른 학기의 과목 | 400 `fieldErrors.courseId`: "선택한 학기에 등록한 과목이 아닙니다." |
+| `courseId`가 없는 과목 | 404 "과목을 찾을 수 없습니다." |
+| `PAST`인데 4칸이 모두 비어 있음(공백만 포함) | 400 "과거 기록은 내용을 한 칸 이상 입력하세요." (fieldErrors 빈 객체) |
+
+요청 예시 (과거 기록)
+```json
+{ "semester": "1-1", "subjectName": "독서", "source": "PAST", "motive": "과학 고전을 읽고 실험 설계에 관심이 생김", "process": "", "result": "", "careerLink": "" }
+```
+
+### 8.4 PUT /api/student/record/drafts/{id}
+4칸과 가이드라인 저장(보낸 값으로 통째로 바꿈, 없는 칸은 `""`). 응답 200, 8.2 상세. `DRAFT`, `REVISION_REQUESTED`가 아니면 400 "제출했거나 확인이 끝난 세특은 수정할 수 없습니다.", 없으면 404.
+
+요청
+```json
+{ "motive": "실험 결과가 교과서와 달라서 이유가 궁금했다", "process": "변인을 바꿔 세 번 반복 측정했다", "result": "", "careerLink": "소프트웨어학과" }
+```
+
+### 8.5 POST /api/student/record/drafts/{id}/submit
+제출(`SUBMITTED`, `submittedAt` 기록). 본문 없음. 응답 200, 8.2 상세.
+- 4칸이 모두 비어 있으면(공백만 포함) 400 "내용을 한 칸 이상 입력한 뒤 제출하세요." (fieldErrors 빈 객체)
+- `DRAFT`, `REVISION_REQUESTED`가 아니면 400 "제출했거나 확인이 끝난 세특은 수정할 수 없습니다.", 없으면 404
+- 선생님 코멘트는 제출해도 지우지 않는다.
+
+프론트: `frontend/src/modules/records/`. 진로 연결이 비어 있으면 화면이 희망 학과 이름(7장)을 기본값으로 채운다(저장 전까지는 화면에만 있음).

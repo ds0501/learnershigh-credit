@@ -1,0 +1,372 @@
+/* 생기부 관리(학생): 학기 탭, 세특 카드, 4칸 작성 화면, 과거 기록 추가 창 */
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.tab {
+  padding: var(--space-1) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.tab:hover {
+  color: var(--color-text);
+}
+
+.tabSelected,
+.tabSelected:hover {
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-on-accent);
+}
+
+.note {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.empty {
+  margin: 0;
+  padding: var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-muted);
+}
+
+.error {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-risk);
+}
+
+.notice {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-accent);
+}
+
+.linkButton {
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: inherit;
+  color: var(--color-accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* 카드 */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  width: 100%;
+  height: 100%;
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  text-align: left;
+  cursor: pointer;
+}
+
+.card:hover {
+  border-color: var(--color-accent-dim);
+}
+
+.card_none {
+  border-style: dashed;
+  background: transparent;
+}
+
+.card_revision {
+  border-color: var(--color-caution-border);
+}
+
+.cardSubject {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+}
+
+.cardMeta {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-subtle);
+}
+
+.badge {
+  display: inline-block;
+  padding: 1px var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  line-height: 1.6;
+  white-space: nowrap;
+  color: var(--color-text-muted);
+}
+
+.badge_none {
+  border-style: dashed;
+  color: var(--color-text-subtle);
+}
+
+.badge_submitted {
+  border-color: var(--color-accent-dim);
+  color: var(--color-accent);
+}
+
+.badge_confirmed {
+  border-color: var(--color-accent);
+  background: var(--color-surface-active);
+  color: var(--color-accent-strong);
+}
+
+.badge_revision {
+  border-color: var(--color-caution-border);
+  background: var(--color-caution-bg);
+  color: var(--color-caution);
+}
+
+.badge_past {
+  background: var(--color-surface-raised);
+}
+
+/* 4칸 작성 화면 */
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.editorStatus {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.comment {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-caution-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-caution-bg);
+}
+
+.commentLabel {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-caution);
+}
+
+.commentText {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-sm);
+  white-space: pre-wrap;
+}
+
+.field {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.fieldRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-muted);
+}
+
+.input,
+.textarea {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-active);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+}
+
+.textarea {
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.input:focus,
+.textarea:focus {
+  border-color: var(--color-accent);
+  outline: none;
+}
+
+.input[aria-invalid='true'] {
+  border-color: var(--color-risk-border);
+}
+
+.readonlyText {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+}
+
+.primaryButton,
+.secondaryButton {
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.primaryButton {
+  border: 1px solid var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+}
+
+.primaryButton:hover:not(:disabled) {
+  background: var(--color-accent-strong);
+}
+
+.secondaryButton {
+  border: 1px solid var(--color-border);
+  background: transparent;
+}
+
+.primaryButton:disabled,
+.secondaryButton:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+/* 과거 기록 추가 창 */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  background: var(--color-overlay);
+}
+
+.modal {
+  display: flex;
+  flex-direction: column;
+  width: min(600px, 100%);
+  max-height: calc(100vh - 2 * var(--space-4));
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.modalTitle {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+}
+
+.close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: var(--font-size-lg);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.close:hover {
+  color: var(--color-accent);
+}
+
+.modalBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  overflow-y: auto;
+}
+
+.fieldError {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-risk);
+}
+
+.modalFooter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--color-border);
+}
+
+.formError {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-risk);
+}

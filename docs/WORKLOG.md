@@ -8,6 +8,20 @@
 - 막힌 점:
 - 다음 할 일:
 
+### 2026-11-22 — 생기부 세특 초안 작성·제출
+- 한 일: DB V9 record_draft(학생·학기·과목명 유니크, course_id → credit_student_course ON DELETE SET NULL, source NEW/PAST, status 4종, PAST는 CHECK로 CONFIRMED만). 백엔드 새 도메인 패키지 record: GET /api/student/record/drafts?semester=(등록 과목 중 초안 없는 것은 NONE 카드, 창체 제외, 과거 기록은 뒤에), GET·PUT /drafts/{id}(DRAFT·REVISION_REQUESTED만 저장), POST /drafts(NEW→DRAFT, PAST→CONFIRMED, 중복 400), POST /drafts/{id}/submit(4칸 모두 비면 400). 프론트 modules/records: 학기 탭(?semester=), 세특 카드(초안 없음·작성 중·제출·확인 완료·수정 요청·기존 기록), 4칸 화면(진로 연결이 비면 희망 학과 이름 기본값, 저장·제출, 제출은 브라우저 confirm 대신 2단계 확인, 제출 뒤 읽기 전용, 선생님 코멘트 표시), 과거 기록 추가 창. 상단 역할 전환(src/role, 학생/선생님)과 선생님 모드의 빈 TeacherRecordPage("준비 중"). api-contract.md 8장(contract 마커 없음)
+- 바뀐 파일: database/migrations/V9__create_record_draft.sql, backend/.../record/**(11개), backend/src/test/.../record/service/RecordDraftServiceTest.java, frontend/src/role/**(신규), frontend/src/modules/records/**(RecordsPage 교체, 나머지 신규), frontend/src/layout/AppLayout.tsx·.module.css, docs/api-contract.md, docs/PROGRESS.md, docs/WORKLOG.md
+- 확인 결과:
+  - 백엔드 ./gradlew test 81개 통과(새 14개). 프론트 npm test 10개 파일 79개 통과(새 5개), npm run build 통과, npm run lint 경고 0개
+  - 실제 백엔드: 8080·5173은 다른 프로세스(22:55 시작)가 쓰고 있어 건드리지 않고, 8081 백엔드(+V9 적용) + 8081을 가리키는 임시 vite 설정(5174, 확인 후 삭제)으로 확인. curl: 목록 1-2 → 9과목 NONE(창체 제외), semester=4-1 → 400, 없는 id → 404
+  - headless Edge(1440px) 27개 통과: 목록·탭·역할 토글 → 통합과학2 4칸(진로 연결 기본값 "소프트웨어학과") 저장 → API DRAFT·courseId 16 → 빈 칸 제출 거부(화면·API 400) → 제출 확인 취소/제출 → 읽기 전용, 제출 뒤 PUT 400 → 과거 기록(1-1 독서) 추가 → 기존 기록·읽기 전용, 중복 추가 오류 → 선생님 모드 "준비 중", 학점 현황은 그대로 → 새로고침 후 유지. 첫 실행에서 4개 실패: 처음 저장 때 "저장했어요." 안내가 사라지는 실제 버그(폼을 다시 그리며 상태가 초기화) → 안내 상태를 상위로 올려 수정. 나머지는 확인 스크립트 문제(목록을 다시 불러오기 전에 확인, Node에서 location 사용)
+  - 선생님 코멘트: 작성 API가 없어 DB에서 통합과학2를 REVISION_REQUESTED + 코멘트로 바꾼 뒤 5개 확인(수정 요청 배지, 코멘트 표시, 다시 편집·저장·제출, 제출 뒤에도 코멘트 유지)
+  - 확인 후 테스트로 만든 record_draft 행을 모두 지움(0행). 희망 학과(소프트웨어학과)는 건드리지 않음. 8081·5174 종료
+  - 확인 못 함: 8080 기존 백엔드로는 확인 못 함(재시작 필요), 좁은 화면 배치, 4칸이 아주 길 때
+- 결정과 이유: semester는 '학년-학기' 문자열. 창체는 과목 세특이 아니라 카드에서 뺌. 수정 불가·빈 제출은 기존 오류 형식에 맞춰 400(409 같은 새 형식을 만들지 않음). 초안 없는 카드는 열기만 해서는 만들지 않고 처음 저장할 때 POST(빈 초안이 쌓이지 않게). 역할은 데모용이라 저장하지 않음(새로고침하면 학생)
+- 막힌 점: 위 8080 포트 사용 중, 처음 저장 안내 버그
+- 다음 할 일: 선생님 화면(TeacherRecordPage)과 확인 API, 커밋
+
 ### 2026-11-22 — 희망 학과 저장 기능
 - 한 일: 학생부 관리 공통 "희망 학과"(학생당 1개, 목표 대학은 선택). DB V8 student_goal(student_id VARCHAR(100) 유니크, department_id → credit_department FK, target_university NULL 허용, updated_at). 백엔드 새 도메인 패키지 goal(controller/service/entity/repository/dto): GET /api/student/goal(없으면 JSON null), PUT /api/student/goal(저장·변경, 학과 없으면 404, departmentId 비면·목표 대학 100자 초과면 400). 프론트 src/goal/: GoalProvider(한 번 불러와 4개 탭에 컨텍스트 제공), 상단 칩("희망 학과: ○○ · 목표 대학: △△ ✎" / "희망 학과 설정"), 설정 창(기존 /departments?query= 검색 + 목표 대학 입력). 학과 로드맵: 검색 전에는 희망 학과 자동 조회, 다른 학과 검색은 미리보기 + "희망 학과로 설정"(목표 대학 유지). 학점 현황: 희망 학과가 없으면 "학과 로드맵에서 희망 학과를 찾아보세요" 안내. api-contract.md 7장 추가(contract 마커 없음)
 - 바뀐 파일: database/migrations/V8__create_student_goal.sql, backend/src/main/java/com/learnershigh/goal/**(5개), backend/src/test/java/com/learnershigh/goal/**(서비스 7개·컨트롤러 3개 테스트), frontend/src/goal/**(신규), frontend/src/layout/AppLayout.tsx·.module.css, frontend/src/modules/credit/CreditPage.tsx·.module.css, frontend/src/modules/credit/roadmap/DepartmentRoadmapPage.tsx·.module.css, docs/api-contract.md, docs/PROGRESS.md, docs/WORKLOG.md. 수행평가·생기부 관리·성적 관리 탭 파일은 안 건드림

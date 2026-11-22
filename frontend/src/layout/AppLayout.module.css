@@ -66,10 +66,13 @@
   padding: var(--space-5);
 }
 
-/* 학생부 관리 상단 희망 학과 칩 줄 */
+/* 학생부 관리 상단 줄: 왼쪽 역할 전환, 오른쪽 희망 학과 칩 */
 .goalBar {
   display: flex;
-  justify-content: flex-end;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
   margin-bottom: var(--space-3);
 }
 
