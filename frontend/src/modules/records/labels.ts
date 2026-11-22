@@ -1,4 +1,4 @@
-import type { DraftContent, DraftStatus, RecordDraftCard } from './types';
+import type { DraftContent, DraftStatus, GuidelineSuggestion, RecordDraftCard } from './types';
 
 export interface SemesterOption {
   // '학년-학기'
@@ -57,6 +57,19 @@ export const CONTENT_FIELDS: { key: 'motive' | 'process' | 'result' | 'careerLin
 
 export function isContentBlank(content: Pick<DraftContent, 'motive' | 'process' | 'result' | 'careerLink'>): boolean {
   return CONTENT_FIELDS.every(({ key }) => content[key].trim() === '');
+}
+
+// 채택한 방향을 guideline_detail에 저장할 글로 만든다(참고 영역에 그대로 보여 준다). 4칸에는 넣지 않는다
+export function guidelineDetailText(suggestion: GuidelineSuggestion): string {
+  return [
+    suggestion.reason,
+    '',
+    '탐구·활동 예시',
+    ...suggestion.examples.map((example) => `- ${example}`),
+    '',
+    '4칸에 적을 때의 포인트',
+    ...suggestion.points.map((point) => `- ${point}`),
+  ].join('\n');
 }
 
 // 진로 연결이 비어 있으면 희망 학과 이름을 기본값으로 채운다

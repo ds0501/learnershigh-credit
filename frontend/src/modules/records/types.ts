@@ -45,6 +45,23 @@ export interface RecordDraft extends DraftContent {
   updatedAt: string;
 }
 
+// 세특 방향 1안. 완성된 세특 문장이 아니라 방향만 담는다
+export interface GuidelineSuggestion {
+  title: string;
+  reason: string;
+  // 탐구·활동 예시 2~3개
+  examples: string[];
+  // 4칸에 적을 때의 포인트 2~3개
+  points: string[];
+}
+
+// POST /drafts/{id}/guidelines, POST /api/student/record/guidelines 응답(항상 3안)
+export interface GuidelineSuggestions {
+  // AI | FALLBACK. 화면에는 표시하지 않는다
+  generatedBy: string;
+  suggestions: GuidelineSuggestion[];
+}
+
 // POST /drafts 요청 본문
 export interface CreateRecordDraftInput extends DraftContent {
   semester: string;

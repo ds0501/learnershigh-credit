@@ -32,6 +32,12 @@ cd backend
 - DB 접속 정보는 환경 변수 `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`로 받는다. 설정하지 않으면 `.env.example`과 같은 로컬 기본값을 쓴다.
 - 다른 위치에서 실행하면 `FLYWAY_LOCATIONS`(예: `filesystem:/절대경로/database/migrations`)로 경로를 지정한다.
 - 빌드와 테스트는 DB 없이 돈다: `./gradlew build`
+- 세특 방향 추천(생기부 관리)은 Claude API를 쓴다. 키는 코드·설정 파일·`.env`에 넣지 않고, `bootRun`을 실행하는 셸에서 환경변수로만 준다(Spring은 `.env`를 자동으로 읽지 않는다).
+  ```
+  export ANTHROPIC_API_KEY=...   # 값은 각자 발급받은 키. 커밋 금지
+  ./gradlew bootRun
+  ```
+  키가 없거나 호출이 실패하면 희망 학과 로드맵 데이터로 만든 고정 안내 3안을 돌려준다(기능은 그대로 동작). 모델·제한 시간·최대 토큰은 `RECORD_AI_MODEL`(기본 `claude-opus-5-5`), `RECORD_AI_TIMEOUT_SECONDS`(기본 60), `RECORD_AI_MAX_TOKENS`(기본 16000)로 바꾼다.
 
 ### 4. 헬스 체크
 ```

@@ -8,6 +8,17 @@
 - 막힌 점:
 - 다음 할 일:
 
+### 2026-11-22 — 세특 방향 추천
+- 한 일: 세특 초안 화면에 "방향 추천받기". 백엔드 POST /drafts/{id}/guidelines(초안 있음), POST /api/student/record/guidelines(초안 없는 카드, DB에 안 만듦), PUT /drafts/{id}/guideline(채택 저장, 4칸은 안 바꿈). 입력은 희망 학과·목표 대학·과목명·희망 학과 로드맵에서의 지정(핵심/권장, 지정 대학 수). Claude API(Java SDK com.anthropic:anthropic-java 3.3.0, 모델 기본 claude-opus-5-5) + 구조화 출력(JSON 스키마)으로 3안 {title, reason, examples, points}, 프롬프트에 완성 세특 문장 금지 명시. 키는 환경변수 ANTHROPIC_API_KEY로만, 모델·제한 시간·최대 토큰은 record.guideline.ai.*(RECORD_AI_*). 키 없음·호출 실패·응답 모양 이상이면 로드맵 기반 고정 안내 3안. 프론트: 추천 3안 카드와 "이 방향으로 채택"(초안 없는 카드는 채택할 때 POST /drafts로 초안 생성), 4칸 위 접을 수 있는 "채택한 방향" 참고 영역, 4칸 자동 채움 없음, AI 표시 없음. api-contract 8.7~8.10, README·.env.example에 환경변수 이름만
+- 바뀐 파일: backend/build.gradle.kts, application.yml, record(controller 2, dto 4, service 5: GuidelineAiClient·ClaudeGuidelineAiClient·FallbackGuidelines·GuidelineContext·RecordGuidelineService, RecordDraft.adoptGuideline), RecordGuidelineServiceTest, frontend records(types, api, labels·test, GuidelinePanel 신규, DraftEditor, Records.module.css), docs/api-contract.md, README.md, .env.example, docs/PROGRESS.md, docs/WORKLOG.md
+- 확인 결과:
+  - 백엔드 ./gradlew test 95개 통과(새 11개, AI는 가짜 구현으로 대체: AI 3안 통과·입력 내용, 프롬프트 금지 문구, 실패·모양 이상 시 고정 안내, 4안 이상 자르기, 희망 학과 없음, 초안 없는 추천(과목 ID·과목명), 채택 저장·상태 제한, 조사 처리). 프론트 npm test 81개 통과(새 1개), build 통과, lint 경고 0개
+  - 실제 백엔드(8081, 일부러 틀린 키): SDK가 실제로 요청을 보내 401 → 고정 안내 3안(FALLBACK)으로 응답. 소프트웨어학과·확률과 통계 → "조사 대학 6곳 중 5곳이 확률과 통계를 핵심 과목으로" 확인. headless Edge 17개 통과: 초안 없는 음악 카드에서 추천(로딩 → 3안, 각 예시·포인트 2~3개, "AI" 글자 없음, 추천만으로는 초안 안 생김) → 채택 시 초안 생성·참고 영역·4칸 빈 칸 그대로 → 접기 → 다시 추천·채택(PUT) → 4칸 저장해도 방향 유지 → 제출 뒤 참고 영역 보임·추천 버튼 없음·채택 PUT 400. 기존 공통국어2 초안 그대로. 내가 만든 행(id 10)만 지움
+  - 확인 못 함: 실제 Claude 응답(키 없음) — 완성 문장을 쓰지 않는지, 구조화 출력이 실제로 3안 모양으로 오는지, 응답 시간. 8080 기존 백엔드는 재시작 필요
+- 결정과 이유: 초안 없는 카드용 추천은 별도 경로(POST /api/student/record/guidelines)로 두고 채택 때 기존 POST /drafts로 초안 생성(빈 초안이 쌓이지 않게). 거절(refusal) 등 모든 실패는 다른 모델로 넘기지 않고 고정 안내로 대체(항상 응답). 고정 안내의 조사(을/를, 과/와)는 받침으로 고름
+- 막힌 점: 셸에서 한글 요청 본문이 깨져 400 → 파이썬으로 UTF-8 파일을 만들어 보냄(서버 문제 아님)
+- 다음 할 일: 실제 키로 응답 품질 확인, 선생님 화면, 커밋
+
 ### 2026-11-22 — 세특 제출 취소
 - 한 일: 참고용 프로그램이라 제출한 뒤에도 학생이 고칠 수 있게 "제출 취소" 추가. POST /api/student/record/drafts/{id}/withdraw: SUBMITTED일 때만 DRAFT로 되돌리고 submitted_at을 비움, 그 밖의 상태(DRAFT·REVISION_REQUESTED·CONFIRMED, 과거 기록 포함)는 400 "제출한 세특만 제출을 취소할 수 있습니다."(fieldErrors 빈 객체). CONFIRMED·PAST는 계속 저장·제출·취소 불가. 화면: 제출 상태의 읽기 전용 화면에 "제출 취소" 버튼, 2단계 확인("제출을 취소할까요? [제출 취소] [닫기]"), 취소하면 "작성 중"으로 다시 편집. 제출 확인 문구를 "제출한 뒤에도 "제출 취소"로 다시 고칠 수 있어요. 제출할까요?"로 바꿈. api-contract.md 8장에 상태 전이 표와 8.6 추가(마커 없음)
 - 바뀐 파일: backend record(RecordDraft.withdraw, RecordDraftService.withdraw, RecordDraftController, RecordDraftServiceTest), frontend/src/modules/records/(api.ts, DraftEditor.tsx, labels.ts canWithdraw, labels.test.ts), docs/api-contract.md, docs/PROGRESS.md, docs/WORKLOG.md

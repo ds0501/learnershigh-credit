@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { canWithdraw, CARD_LABEL, cardKind, initialCareerLink, isContentBlank, isEditable } from './labels';
+import { canWithdraw, CARD_LABEL, cardKind, guidelineDetailText, initialCareerLink, isContentBlank, isEditable } from './labels';
 
 describe('세특 카드 상태 문구', () => {
   it('초안 없음, 작성 중, 제출, 확인 완료, 수정 요청', () => {
@@ -31,6 +31,19 @@ describe('제출 취소', () => {
     expect(canWithdraw('DRAFT')).toBe(false);
     expect(canWithdraw('REVISION_REQUESTED')).toBe(false);
     expect(canWithdraw('NONE')).toBe(false);
+  });
+});
+
+describe('채택한 방향', () => {
+  it('이유, 탐구·활동 예시, 4칸 포인트를 참고용 글로 만든다', () => {
+    expect(
+      guidelineDetailText({
+        title: '실험 설계 깊게 파기',
+        reason: '핵심 과목이에요.',
+        examples: ['변인 통제 실험', '오차 분석'],
+        points: ['탐구 동기: 궁금했던 장면', '활동 과정: 바꾼 방법'],
+      }),
+    ).toBe('핵심 과목이에요.\n\n탐구·활동 예시\n- 변인 통제 실험\n- 오차 분석\n\n4칸에 적을 때의 포인트\n- 탐구 동기: 궁금했던 장면\n- 활동 과정: 바꾼 방법');
   });
 });
 

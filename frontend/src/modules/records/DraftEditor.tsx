@@ -4,9 +4,20 @@ import { ApiError } from '../../api/errors';
 import { useAsync } from '../../api/useAsync';
 import { useGoal } from '../../goal/goalContext';
 import { PageHeader } from '../../layout/PageHeader';
-import { createDraft, getDraft, saveDraft, submitDraft, withdrawDraft } from './api';
-import { canWithdraw, CARD_LABEL, cardKind, CONTENT_FIELDS, initialCareerLink, isContentBlank, isEditable, semesterLabel } from './labels';
-import type { DraftContent, RecordDraft, RecordDraftCard } from './types';
+import { adoptGuideline, createDraft, getDraft, saveDraft, submitDraft, withdrawDraft } from './api';
+import { GuidelinePanel } from './GuidelinePanel';
+import {
+  canWithdraw,
+  CARD_LABEL,
+  cardKind,
+  CONTENT_FIELDS,
+  guidelineDetailText,
+  initialCareerLink,
+  isContentBlank,
+  isEditable,
+  semesterLabel,
+} from './labels';
+import type { DraftContent, GuidelineSuggestion, RecordDraft, RecordDraftCard } from './types';
 import styles from './Records.module.css';
 
 type ContentValues = Pick<DraftContent, 'motive' | 'process' | 'result' | 'careerLink'>;
@@ -102,6 +113,7 @@ function DraftForm({ card, draft, notice, onNotice, onSaved }: DraftFormProps) {
       ? saveDraft(draft.id, content())
       : createDraft({ ...content(), semester: card.semester, subjectName: card.subjectName, courseId: card.courseId, source: 'NEW' });
 
+  // 성공하면 true
   const run = async (action: () => Promise<RecordDraft>, done: string) => {
     setBusy(true);
     setError(null);
@@ -110,8 +122,10 @@ function DraftForm({ card, draft, notice, onNotice, onSaved }: DraftFormProps) {
       const result = await action();
       onSaved(result);
       onNotice(done);
+      return true;
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : '저장하지 못했습니다. 잠시 후 다시 시도하세요.');
+      return false;
     } finally {
       setBusy(false);
       setConfirmingSubmit(false);
@@ -120,6 +134,26 @@ function DraftForm({ card, draft, notice, onNotice, onSaved }: DraftFormProps) {
   };
 
   const save = () => run(persist, '저장했어요.');
+
+  // 방향 채택: 초안이 있으면 guideline만 저장(PUT), 없으면 지금 4칸과 함께 초안을 만들어 저장(POST). 4칸은 채우지 않는다
+  const adopt = (suggestion: GuidelineSuggestion) => {
+    const guideline = { title: suggestion.title, detail: guidelineDetailText(suggestion) };
+    return run(
+      () =>
+        draft
+          ? adoptGuideline(draft.id, guideline)
+          : createDraft({
+              ...values,
+              guidelineTitle: guideline.title,
+              guidelineDetail: guideline.detail,
+              semester: card.semester,
+              subjectName: card.subjectName,
+              courseId: card.courseId,
+              source: 'NEW',
+            }),
+      '방향을 채택했어요. 4칸 위 "채택한 방향"에서 볼 수 있어요.',
+    );
+  };
 
   const askSubmit = () => {
     onNotice(null);
@@ -158,6 +192,16 @@ function DraftForm({ card, draft, notice, onNotice, onSaved }: DraftFormProps) {
           <span className={styles.commentLabel}>선생님 코멘트</span>
           <p className={styles.commentText}>{draft.teacherComment}</p>
         </div>
+      )}
+
+      {editable && <GuidelinePanel card={card} draft={draft} busy={busy} onAdopt={adopt} />}
+
+      {/* 채택한 방향: 4칸 위 접을 수 있는 참고 영역 */}
+      {draft?.guidelineTitle && (
+        <details className={styles.guideline} open data-testid="adopted-guideline">
+          <summary className={styles.guidelineSummary}>채택한 방향: {draft.guidelineTitle}</summary>
+          {draft.guidelineDetail && <p className={styles.guidelineDetail}>{draft.guidelineDetail}</p>}
+        </details>
       )}
 
       {CONTENT_FIELDS.map((field) => (

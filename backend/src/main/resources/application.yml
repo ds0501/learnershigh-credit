@@ -14,3 +14,12 @@ spring:
   flyway:
     # backend 폴더에서 실행하는 것을 기준으로 저장소 루트의 database/migrations를 가리킨다
     locations: ${FLYWAY_LOCATIONS:filesystem:../database/migrations}
+
+record:
+  guideline:
+    ai:
+      # 세특 방향 추천(Claude API). API 키는 여기에 두지 않고 환경변수 ANTHROPIC_API_KEY로만 읽는다.
+      # 키가 없거나 호출이 실패하면 로드맵 기반 고정 안내로 대체한다
+      model: ${RECORD_AI_MODEL:claude-opus-5-5}
+      timeout-seconds: ${RECORD_AI_TIMEOUT_SECONDS:60}
+      max-tokens: ${RECORD_AI_MAX_TOKENS:16000}
