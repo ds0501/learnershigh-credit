@@ -160,7 +160,7 @@ class RecordGuidelineServiceTest {
 
 		assertThat(response.generatedBy()).isEqualTo("FALLBACK");
 		assertThat(response.suggestions()).hasSize(3);
-		assertThat(response.suggestions().get(0).reason()).contains("컴퓨터공학과 조사 대학 12곳 중 8곳이 통합과학2을(를) 핵심 과목으로 둬요.");
+		assertThat(response.suggestions().get(0).reason()).contains("컴퓨터공학과 조사 대학 12곳 중 8곳이 통합과학2를 핵심 과목으로 둬요.");
 		response.suggestions().forEach(item -> {
 			assertThat(item.examples()).hasSizeBetween(2, 3);
 			assertThat(item.points()).hasSizeBetween(2, 3);
@@ -190,7 +190,49 @@ class RecordGuidelineServiceTest {
 		assertThat(FallbackGuidelines.josa("음악", "과", "와")).isEqualTo("과");
 		assertThat(FallbackGuidelines.josa("확률과 통계", "을", "를")).isEqualTo("를");
 		assertThat(FallbackGuidelines.josa("소프트웨어학과", "을", "를")).isEqualTo("를");
-		assertThat(FallbackGuidelines.josa("통합과학2", "을", "를")).isEqualTo("을(를)");
+	}
+
+	@Test
+	void 숫자로_끝나는_과목명은_숫자를_읽는_소리로_조사를_고른다() {
+		// 받침 없음: 2(이) 4(사) 5(오) 9(구)
+		assertThat("공통수학2" + FallbackGuidelines.josa("공통수학2", "을", "를")).isEqualTo("공통수학2를");
+		assertThat("공통수학2" + FallbackGuidelines.josa("공통수학2", "과", "와")).isEqualTo("공통수학2와");
+		assertThat("한국사2" + FallbackGuidelines.josa("한국사2", "을", "를")).isEqualTo("한국사2를");
+		assertThat("과학탐구실험2" + FallbackGuidelines.josa("과학탐구실험2", "을", "를")).isEqualTo("과학탐구실험2를");
+		for (String digit : List.of("2", "4", "5", "9")) {
+			assertThat(FallbackGuidelines.josa("과목" + digit, "을", "를")).as(digit).isEqualTo("를");
+		}
+		// 받침 있음: 0(영) 1(일) 3(삼) 6(육) 7(칠) 8(팔)
+		assertThat("물리학1" + FallbackGuidelines.josa("물리학1", "을", "를")).isEqualTo("물리학1을");
+		assertThat("물리학1" + FallbackGuidelines.josa("물리학1", "과", "와")).isEqualTo("물리학1과");
+		for (String digit : List.of("0", "1", "3", "6", "7", "8")) {
+			assertThat(FallbackGuidelines.josa("과목" + digit, "을", "를")).as(digit).isEqualTo("을");
+		}
+	}
+
+	@Test
+	void 로마_숫자와_영문자도_읽는_소리로_판단하고_모르면_둘_다_쓴다() {
+		assertThat(FallbackGuidelines.josa("영어Ⅰ", "을", "를")).isEqualTo("을");
+		assertThat(FallbackGuidelines.josa("미적분Ⅱ", "을", "를")).isEqualTo("를");
+		assertThat(FallbackGuidelines.josa("AI 기초", "을", "를")).isEqualTo("를");
+		assertThat(FallbackGuidelines.josa("AI", "을", "를")).isEqualTo("를");
+		assertThat(FallbackGuidelines.josa("Python", "을", "를")).isEqualTo("을");
+		assertThat(FallbackGuidelines.josa("생명과학(심화)", "을", "를")).isEqualTo("를");
+		assertThat(FallbackGuidelines.josa("음악 ", "과", "와")).isEqualTo("과");
+		assertThat(FallbackGuidelines.josa("C++", "을", "를")).isEqualTo("을(를)");
+		assertThat(FallbackGuidelines.josa("", "을", "를")).isEqualTo("을(를)");
+	}
+
+	@Test
+	void 고정_안내_문장에_숫자_과목명의_조사가_자연스럽게_나온다() {
+		GuidelineContext notInRoadmap = new GuidelineContext("공통수학2", "소프트웨어학과", "공학", null, null, null, null, null);
+		List<GuidelineSuggestion> suggestions = FallbackGuidelines.build(notInRoadmap);
+		assertThat(suggestions.get(0).reason()).startsWith("소프트웨어학과 로드맵에서 공통수학2를 지정한 대학은 없지만");
+		assertThat(suggestions.get(1).title()).isEqualTo("공통수학2와 소프트웨어학과를 잇는 탐구 주제 정하기");
+
+		GuidelineContext inRoadmap = new GuidelineContext("물리학1", "컴퓨터공학과", "공학", null, "CORE", 8, 12, 66.67);
+		assertThat(FallbackGuidelines.build(inRoadmap).get(0).reason()).startsWith("컴퓨터공학과 조사 대학 12곳 중 8곳이 물리학1을 핵심 과목으로 둬요.");
+		assertThat(FallbackGuidelines.build(inRoadmap).get(1).title()).isEqualTo("물리학1과 컴퓨터공학과를 잇는 탐구 주제 정하기");
 	}
 
 	@Test

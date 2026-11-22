@@ -48,16 +48,51 @@ final class FallbackGuidelines {
 				+ "곳이 " + context.subjectName() + josa(context.subjectName(), "을", "를") + " " + context.designationLabel() + " 과목으로 둬요.";
 	}
 
-	// 받침 유무로 조사를 고른다(을/를, 과/와). 마지막 글자가 한글이 아니면(예: 통합과학2) "을(를)"처럼 둘 다 쓴다
+	// 받침 유무로 조사를 고른다(을/를, 과/와). 마지막 글자를 읽는 소리로 판단하고, 판단할 수 없으면 "을(를)"처럼 둘 다 쓴다.
+	// 끝의 공백·닫는 괄호는 건너뛴다(예: "생명과학(심화)"는 "화"로 판단)
 	static String josa(String word, String withFinal, String withoutFinal) {
-		if (word == null || word.isEmpty()) {
+		Boolean hasFinal = endsWithFinalConsonant(word);
+		if (hasFinal == null) {
 			return withFinal + "(" + withoutFinal + ")";
 		}
-		char last = word.charAt(word.length() - 1);
-		if (last < 0xAC00 || last > 0xD7A3) {
-			return withFinal + "(" + withoutFinal + ")";
+		return hasFinal ? withFinal : withoutFinal;
+	}
+
+	// 숫자를 한글로 읽을 때 받침이 있는 것: 0(영) 1(일) 3(삼) 6(육) 7(칠) 8(팔). 없는 것: 2(이) 4(사) 5(오) 9(구)
+	private static final String DIGITS_WITH_FINAL = "013678";
+	// 로마 숫자 Ⅰ~Ⅹ(과목명 "영어Ⅰ" 등): 일 이 삼 사 오 육 칠 팔 구 십
+	private static final String ROMAN_NUMERALS = "ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩ";
+	private static final boolean[] ROMAN_HAS_FINAL = { true, false, true, false, false, true, true, true, false, true };
+	// 영문자를 알파벳 이름으로 읽을 때 받침이 있는 것: L(엘) M(엠) N(엔) R(알). 나머지(A 에이, I 아이 등)는 받침 없음
+	private static final String LETTERS_WITH_FINAL = "LMNR";
+
+	// 받침이 있으면 true, 없으면 false, 판단할 수 없으면 null
+	static Boolean endsWithFinalConsonant(String word) {
+		if (word == null) {
+			return null;
 		}
-		return (last - 0xAC00) % 28 == 0 ? withoutFinal : withFinal;
+		int index = word.length() - 1;
+		while (index >= 0 && (Character.isWhitespace(word.charAt(index)) || ")]}）".indexOf(word.charAt(index)) >= 0)) {
+			index--;
+		}
+		if (index < 0) {
+			return null;
+		}
+		char last = word.charAt(index);
+		if (last >= 0xAC00 && last <= 0xD7A3) {
+			return (last - 0xAC00) % 28 != 0;
+		}
+		if (last >= '0' && last <= '9') {
+			return DIGITS_WITH_FINAL.indexOf(last) >= 0;
+		}
+		int roman = ROMAN_NUMERALS.indexOf(last);
+		if (roman >= 0) {
+			return ROMAN_HAS_FINAL[roman];
+		}
+		if ((last >= 'A' && last <= 'Z') || (last >= 'a' && last <= 'z')) {
+			return LETTERS_WITH_FINAL.indexOf(Character.toUpperCase(last)) >= 0;
+		}
+		return null;
 	}
 
 }
