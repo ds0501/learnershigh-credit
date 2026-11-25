@@ -25,6 +25,8 @@ dependencies {
 	implementation("org.flywaydb:flyway-mysql")
 	// 세특 방향 추천(Claude API). 키는 환경변수 ANTHROPIC_API_KEY로만 읽는다
 	implementation("com.anthropic:anthropic-java:3.3.0")
+	// 성적 관리: 나이스 성적표 PDF 텍스트 추출
+	implementation("org.apache.pdfbox:pdfbox:3.0.3")
 	runtimeOnly("com.mysql:mysql-connector-j")
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")

@@ -8,6 +8,59 @@
 - 막힌 점:
 - 다음 할 일:
 
+### 2026-11-26 — 성적 관리: 직접 입력에도 과목명 검색
+- 한 일: 성적 직접 입력 폼의 과목명 칸을 자유 입력 + 검색으로 바꿈. credit 모듈의 표준 과목 목록 API(`GET /api/student/credit/catalog?query=`)를 그대로 호출(코드 import 없이 API 경로만 공유, 모듈 분리 유지)해서, 과목명을 타이핑하면 CourseRegisterModal(학점 현황의 신규 과목 등록 모달)과 같은 모양의 드롭다운으로 검색 결과를 보여 주고 고르면 그 이름이 그대로 들어간다. 목록에 없는 과목명을 직접 쳐서 저장하는 것도 그대로 된다(강제 선택 아님). 수정(editing) 중엔 과목명을 못 바꾸니 검색도 안 뜨게 함
+- 바뀐 파일: frontend/src/modules/grades/api.ts(searchCourseCatalog), types.ts(CatalogItem), labels.ts(CATALOG_COURSE_TYPE_LABEL), components/GradeRecordForm.tsx·module.css(검색 드롭다운)
+- 확인 결과: 프론트 npm run build·lint·test(81개) 통과. 백엔드 catalog 검색 API를 curl로 재확인(한글 쿼리는 꼭 퍼센트 인코딩해야 함 — 브라우저 fetch는 자동으로 하니 문제없음, curl 수동 테스트에서만 주의). 브라우저 확장 미연결로 화면에서 드롭다운이 실제로 뜨는지는 직접 못 눌러봄(기존 제약)
+- 결정과 이유: credit 모듈의 CatalogItem 타입과 검색 UI를 그대로 import하지 않고 grades 쪽에 똑같이 다시 둠(모듈 분리 원칙, 기존 StateMessage·SemesterTabs도 같은 방식)
+- 막힌 점: 없음
+- 다음 할 일: 브라우저에서 직접 검색·선택 눌러서 확인
+
+### 2026-11-26 — 성적 관리: 미등록 과목 자동 등록, 과목명 공백 파싱 수정
+- 한 일: 사용자 요청 두 가지. ① "성적표 인식 과목이 학점제에 등록 안 돼 있으면 표준 과목 목록에서 찾아 신규 등록" — GradeCreditSyncService에 tryAutoRegister 추가: `credit_student_course`에 없으면 `credit_course_catalog`에서 같은 이름을 찾아(파일 수정 없이 기존 리포지토리로 인메모리 필터링) 새 `credit_student_course`(학점4·지필60/수행40·완료 상태 등 기본값, PROGRESS.md 미정)를 만들고 평가 1건("성적표 반영")을 넣어 반영. 전문교과(SPECIALIZED)는 `credit_student_course`의 DB CHECK 제약에 없어 등록하면 깨지므로 건너뜀. ② "동일 학기 동일 성적표 중복 저장 시 갱신" — 확인해 보니 이미 구현돼 있었음(유니크 키로 기존 레코드를 찾아 upsert). 이 과정에서 실제 발급본 테스트를 다시 돌리다가 **과목명에 공백이 들어간 경우를 못 읽는 버그**를 발견("영어 독해와 작문"을 교과 "영어"만 떼어낸 뒤 과목명도 "영어"로 잘못 읽음) — GradePdfParsingService의 SUBJECT_LINE을 "원점수/평균(편차) 숫자 패턴 앞까지 통째로 잡고(prefix), 끝에 공백+숫자로 붙은 단위수만 떼어내는" 방식으로 다시 짜서 수정
+- 바뀐 파일: backend/.../grade/service/GradeCreditSyncService.java(tryAutoRegister), backend/.../grade/service/GradePdfParsingService.java(SUBJECT_LINE·TRAILING_UNIT_COUNT), backend/src/test/.../grade/service/GradeCreditSyncServiceTest.java(신규), backend/src/test/.../grade/service/GradePdfParsingServiceTest.java(공백 과목명 케이스 추가), frontend/src/modules/grades/labels.ts(NOT_FOUND 문구), docs/api-contract.md(9장), docs/WORKLOG.md
+- 확인 결과:
+  - 단위 테스트: GradePdfParsingServiceTest 7개, 신규 GradeCreditSyncServiceTest 7개(기존 덮어쓰기·NO_ASSESSMENT·AMBIGUOUS 포함) 모두 통과. `./gradlew build` 통과
+  - 실제 백엔드로 그 실제 발급본 PDF를 다시 업로드 → "영어 독해와 작문"이 이제 정확히 그 이름으로 잡히고, "영어Ⅰ"·"문학"·"영어 독해와 작문" 3과목이 표준 과목 목록에 있어 자동 등록되어 credit에 반영됨(성취율이 각각 78.0/89.0/82.0으로 원점수와 일치 확인). 나머지 13과목(독서·수학Ⅰ·화학Ⅰ 등)은 이 파일이 2015개정 과목명(Ⅰ·Ⅱ 로마숫자)을 쓰는데 이 프로젝트의 표준 과목 목록은 2022개정 이름(화학·생명과학·중국어 등 로마숫자 없음)이라 이름이 안 맞아 NOT_FOUND — 파싱·자동등록 로직은 정상, 교육과정 개정판 차이로 인한 별개 문제(PROGRESS.md 미정에 기록). 중복 저장(같은 파일 두 번 업로드)도 재확인: 과목이 새로 중복 생기지 않고 같은 credit 과목(id 그대로)에 다시 반영됨
+  - 중간에 백엔드를 여러 번 재시작하며 생긴 테스트 흔적(이전 코드로 만들어진 "영어"라는 잘못된 레코드 등)을 DB에서 직접 찾아 정리함. 정리 중 2026-11-10에 이미 있던 "확률과 통계"(2학년 1학기, 성취율 98.0) 데모 데이터를 내가 만든 것과 혼동하지 않도록 구분해서 그대로 남겨 둠(지우지 않음)
+  - 확인 못 함: 2015개정/2022개정 과목명이 다른 경우(수학Ⅰ↔대수 등) 매칭해 줄지는 이번 범위 밖(아래 미정)
+- 결정과 이유: 자동 등록 기본값(학점4, 지필60/수행40, 완료 상태)은 CourseRegisterModal(프론트 수동 등록 모달)의 기본값과 똑같이 맞춤 — 성적표에는 학교 편성 정보가 없어 임의로 정할 수밖에 없고, 기존 수동 등록 흐름과 다르게 가면 더 헷갈릴 것 같아서. 전문교과는 DB 제약 때문에 이번에 등록 대상에서 제외
+- 막힌 점: 백엔드를 반복해서 재시작하며 테스트하는 과정에서 어떤 업로드가 어느 버전 코드로 실행됐는지 섞여서, DB를 직접 조회해 원인(과목명 공백 파싱 버그)과 흔적을 찾아야 했음
+- 다음 할 일: 2015개정/2022개정 과목명 차이를 어떻게 다룰지 정하기(그대로 NOT_FOUND로 둘지, 매핑表를 만들지), 정부24 원본 PDF로 재확인
+
+### 2026-11-26 — 성적 관리: 실제 발급본 일부로 파싱 규칙 맞춤
+- 한 일: 사용자가 docs/references에 실제 학생부 발급본 일부("2학년 교과학습발달상황 - Claude.pdf", 로컬 전용·커밋 안 됨)를 가져와 업로드가 인식이 안 된다고 확인 요청. PDFBox로 텍스트를 뽑아보니 표를 줄 단위로 추출하면서 ① 학년이 "[2학년]"처럼 괄호로, 학기는 "1"/"2" 숫자 한 줄로 따로 나오고(학기 칸이 세로로 합쳐진 칸이라 값이 한 번만 나옴) ② 교과명이 길면("기술·가정/제2외국어/한문/교양" 등) 줄바꿈되어 그 다음 과목 데이터 줄에는 교과명이 전혀 안 붙는 것을 확인. GradePdfParsingService에 GRADE_YEAR_ONLY("[N학년]"/"N학년" 단독 줄)와 TERM_ONLY(학년을 먼저 찾은 뒤에만 숫자 한 줄을 학기로 인정)를 추가하고, currentTerm도 null이면 데이터 줄을 건너뛰게 함(이전엔 학기 없이도 통과돼 term이 null로 들어갈 수 있는 버그였음). 교과명 줄바꿈 케이스는 원래 GROUP_LABEL 로직 없이도(교과명이 그 줄에 없으니) 과목명만 그대로 잡혀 추가 수정 없이 통과
+- 바뀐 파일: backend/.../grade/service/GradePdfParsingService.java(GRADE_YEAR_ONLY, TERM_ONLY 추가), backend/src/test/.../grade/service/GradePdfParsingServiceTest.java(parsesRealExportedTableLayout 추가, 실제 추출 텍스트를 그대로 입력값으로 씀), docs/WORKLOG.md
+- 확인 결과:
+  - 단위 테스트 6개 통과(새 1개), ./gradlew build 통과
+  - 실제 백엔드로 그 실제 PDF 파일을 그대로 업로드 → 16건(2학년 1·2학기 각 8과목) 전부 인식(실패 0), 교과명이 줄바꿈된 한국지리·중국어Ⅰ·한문Ⅰ도 과목명·점수 정확히 인식(한국지리 1학기 원점수 88, 등급 3 확인). 데모 DB에 2학년 과목이 없어 16건 모두 NOT_FOUND(매칭 문제이지 파싱 문제 아님, 정상)로 appliedToCredit=false — credit_assessment는 건드려지지 않아 복원 불필요. 만든 레코드(id 10~25)만 지움
+  - 확인 못 함: 이 파일의 출처 문구("※ 양식 예시용 가상 데이터입니다", 하단에 claude.ai 채팅 링크 흔적)로 보아 정부24가 아니라 웹페이지를 PDF로 인쇄한 가상 예시임. 실제 정부24 발급 PDF의 폰트·레이아웃이 완전히 같은지는 여전히 확인 못 함
+- 결정과 이유: 학기 숫자 단독 줄을 "학년을 먼저 찾은 뒤에만" 인정하도록 제한(교과 없이 시작하는 과목 데이터 줄 등 엉뚱한 한 글자 줄을 학기로 잘못 읽지 않기 위함)
+- 막힌 점: 없음
+- 다음 할 일: 정부24에서 직접 내려받은 원본 PDF로도 같은 방식이 통하는지 확인
+
+### 2026-11-26 — 성적 관리: 교과/과목 분리 파싱과 샘플 PDF
+- 한 일: 나이스 성적표 실제 양식을 웹 검색으로 확인(교과학습발달상황은 "교과"(국어·수학 등 상위 분류)와 "과목"(공통국어1 등)이 별도 칸, "원점수/과목평균(표준편차)·성취도(수강자수)·석차등급" 구성, 수강자수 13명 이하는 석차등급 대신 '·'). 기존 파서가 줄 맨 앞 토큰을 무조건 과목명으로 읽어 교과명이 먼저 오면 잘못 읽는 문제를 발견해 수정: GradePdfParsingService에 보통교과(군) 이름 목록(GROUP_LABEL)을 두고, 줄 맨 앞에 그 이름이 단독으로 오면 걷어낸 뒤 그 다음 토큰을 과목명으로 잡음(교과 없이 과목명으로 시작하는 줄도 그대로 지원). 실제 양식(교과·과목·단위수 칸 포함)에 맞춘 샘플 PDF를 docs/references/sample_report_card.pdf로 만들어 실제 업로드로 끝까지 확인
+- 바뀐 파일: backend/.../grade/service/GradePdfParsingService.java(GROUP_LABEL 추가), backend/src/test/.../grade/service/GradePdfParsingServiceTest.java(stripsLeadingSubjectGroupLabel 추가), docs/references/sample_report_card.pdf(신규, 로컬 전용·커밋 안 됨), docs/WORKLOG.md
+- 확인 결과:
+  - 단위 테스트 5개 통과(새 1개), ./gradlew build 통과
+  - 실제 백엔드로 docs/references/sample_report_card.pdf(1학년 1·2학기, "교과 과목 단위수 원점수/평균(편차) 성취도(수강자수) 석차등급" 형태 6줄) 업로드 → 6건 전부 인식(실패 0), "국어 공통국어1 4 90/75.5(10.2) A(300) 2" 같은 교과-접두 줄도 과목명을 "공통국어1"로 정확히 인식, credit에 있는 5과목은 반영(appliedToCredit=true), DB에 없는 "진로영어"는 NOT_FOUND로 정확히 미반영. 확인 후 만든 레코드와 건드린 credit_assessment(과목 1·2·3·4·11)는 database/migrations/V4의 원래 시딩 값으로 전부 복원, 성취율도 작업 전 값과 일치 확인
+  - 확인 못 함: 실제 나이스에서 내려받은 PDF 원본은 여전히 구하지 못해, 진짜 파일의 줄바꿈·공백·칸 구분이 이 샘플과 같은지는 확인 못 함(교과명 whitelist도 2015/2022 개정 보통교과 기준 추정치)
+- 결정과 이유: 교과명 whitelist 방식을 택함(정규식으로 정확한 칸 구분을 모르는 상태에서 안전하게 보통교과 이름만 걷어내는 보수적인 방법). 전문교과·수강자수 13명 이하의 '·' 표기 등은 이번에 다루지 않음
+- 막힌 점: 없음
+- 다음 할 일: 실제 나이스 PDF 원본 확보 시 샘플/파싱 규칙 재검증
+
+### 2026-11-26 — 성적 관리: PDF 업로드와 직접 입력
+- 한 일: 성적 관리(빈 페이지였음)에 처음 기능 구현. DB V10(grade_upload, grade_record: 원점수·과목평균·표준편차·등급 1~9, (student_id, grade_year, term, subject_name) 유니크). 백엔드 새 도메인 패키지 grade: POST /uploads(나이스 성적표 PDF, PDFBox로 텍스트 추출 후 "N학년 N학기" 머리글 + "과목명 원점수/평균(표준편차) 등급" 줄 정규식 파싱, 파일은 파싱 후 버리고 메타만 저장), GET /records?gradeYear=&term=, POST·PUT·DELETE /records(직접 입력·수정·삭제). credit 모듈 반영(사용자 확정): 저장마다 studentId+gradeYear+term+과목명으로 credit_student_course를 찾아, 매칭되면 그 과목의 기존 credit_assessment 전체를 score=round(rawScore/100×maxScore)로 다시 씀(가중치·만점·날짜는 그대로, 결과 성취율이 원점수와 같아짐). 매칭 실패(NOT_FOUND)·모호(AMBIGUOUS)·반영할 평가 없음(NO_ASSESSMENT)은 반영 안 하고 이유를 저장. credit 패키지 파일은 안 건드리고 리포지토리만 주입받아 씀(모듈 분리 유지). 프론트 modules/grades: PDF 업로드 패널(인식/실패/반영 건수, 미반영 이유 목록), 학기 탭(자체 구현, credit과 공유 안 함), 성적 표(반영 배지, 수정·삭제), 직접 입력 모달. frontend/src/api/client.ts에 apiUpload(FormData) 헬퍼 추가. docs/api-contract.md 9장 추가
+- 바뀐 파일: database/migrations/V10__create_grade_record.sql, backend/build.gradle.kts(pdfbox), application.yml(multipart 설정), common/exception/GlobalExceptionHandler(MaxUploadSizeExceededException), backend/.../grade/**(entity 2, repository 2, service 5, controller 1, dto 3) 신규, backend/src/test/.../grade/service/GradePdfParsingServiceTest.java 신규, frontend/src/api/client.ts(apiUpload), frontend/src/modules/grades/**(GradesPage 교체, api·types·labels·domain·components 신규), docs/api-contract.md, docs/PROGRESS.md, docs/WORKLOG.md
+- 확인 결과:
+  - 백엔드 ./gradlew build 통과(PDF 파싱 테스트 4개 포함, 한글 폰트 임베딩이 테스트 환경에서 안 돼 정규식 파싱(parseText)과 PDFBox 추출 경로(ASCII 스모크 테스트)를 분리해 검증). 프론트 npm run build·lint·test(81개) 통과
+  - 실제 백엔드(8080, 기존 데모 DB): 직접 추가(공통국어1, 원점수90) → credit_assessment 3건 모두 score=90으로 덮어써짐·성취율 81.4→90.0 확인. 수정(70으로)도 다시 반영됨. 없는 과목명 → NOT_FOUND로 미반영. 등급 20·원점수 200 같은 잘못된 값 → 400 fieldErrors. 실제 한글 PDF(Arial Unicode 폰트로 생성, "1학년 2학기 / 공통수학1 95/66.7(8.0) A(300) 1") 업로드 → 과목명·원점수·평균·표준편차·등급 정확히 인식(해당 학기엔 그 이름의 등록 과목이 없어 NOT_FOUND, 매칭 로직 자체는 확인). 확인 후 만든 레코드(id 1~3)와 건드린 credit_assessment(과목 1) 점수를 전부 원래 값(82/76/85, 성취율 81.4)으로 되돌림
+  - 확인 못 함: 실제 나이스 성적표 PDF 샘플이 없어 그 형식으로는 검증 못 함(텍스트 PDF/줄 패턴 가정). 브라우저 확장(claude-in-chrome) 미연결로 화면에서 직접 눌러 확인 못 함(기존과 같은 제약)
+- 결정과 이유: 원점수 하나를 지필/수행 여러 평가에 비례 배분해 덮어쓰는 방식을 택함 — 가중치 구조를 안 건드리면서 성취율을 성적표 값과 일치시킬 수 있음(사용자가 "덮어씀"으로 결정, 비례 배분은 내 설계). 매칭된 과목에 평가가 없으면 반영 안 함 — 학생도 모르게 가중치 100% 평가를 새로 만들지 않기 위함. 레코드 수정·삭제 시 credit 점수를 되돌리는 로직은 넣지 않음(범위 밖, 미정)
+- 막힌 점: PDFBox 한글 폰트 임베딩 테스트(AppleGothic·AppleMyungjo는 os2 테이블 없음, NotoSansGothic은 한글 글리프 없음, AppleSDGothicNeo.ttc는 컬렉션이라 직접 못 읽음) → PDF 텍스트 추출과 정규식 파싱을 분리해 우회(실제 curl 테스트는 Arial Unicode.ttf로 성공)
+- 다음 할 일: 실제 나이스 PDF 샘플로 파싱 규칙 검증, 레코드 매칭 실패 시 과목을 수동으로 지정해 재반영하는 기능 검토, 커밋
+
 ### 2026-11-22 — 세특 방향 추천
 - 한 일: 세특 초안 화면에 "방향 추천받기". 백엔드 POST /drafts/{id}/guidelines(초안 있음), POST /api/student/record/guidelines(초안 없는 카드, DB에 안 만듦), PUT /drafts/{id}/guideline(채택 저장, 4칸은 안 바꿈). 입력은 희망 학과·목표 대학·과목명·희망 학과 로드맵에서의 지정(핵심/권장, 지정 대학 수). Claude API(Java SDK com.anthropic:anthropic-java 3.3.0, 모델 기본 claude-opus-5-5) + 구조화 출력(JSON 스키마)으로 3안 {title, reason, examples, points}, 프롬프트에 완성 세특 문장 금지 명시. 키는 환경변수 ANTHROPIC_API_KEY로만, 모델·제한 시간·최대 토큰은 record.guideline.ai.*(RECORD_AI_*). 키 없음·호출 실패·응답 모양 이상이면 로드맵 기반 고정 안내 3안. 프론트: 추천 3안 카드와 "이 방향으로 채택"(초안 없는 카드는 채택할 때 POST /drafts로 초안 생성), 4칸 위 접을 수 있는 "채택한 방향" 참고 영역, 4칸 자동 채움 없음, AI 표시 없음. api-contract 8.7~8.10, README·.env.example에 환경변수 이름만
 - 바뀐 파일: backend/build.gradle.kts, application.yml, record(controller 2, dto 4, service 5: GuidelineAiClient·ClaudeGuidelineAiClient·FallbackGuidelines·GuidelineContext·RecordGuidelineService, RecordDraft.adoptGuideline), RecordGuidelineServiceTest, frontend records(types, api, labels·test, GuidelinePanel 신규, DraftEditor, Records.module.css), docs/api-contract.md, README.md, .env.example, docs/PROGRESS.md, docs/WORKLOG.md

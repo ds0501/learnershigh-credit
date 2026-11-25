@@ -1,9 +1,12 @@
 package com.learnershigh.common.exception;
 
+import java.util.Map;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 // 모든 컨트롤러의 오류 응답을 { message, fieldErrors } 모양으로 통일한다.
 @RestControllerAdvice
@@ -19,6 +22,12 @@ public class GlobalExceptionHandler {
 	@ResponseStatus(HttpStatus.NOT_FOUND)
 	public ErrorResponse handleNotFound(NotFoundException exception) {
 		return new ErrorResponse(exception.getMessage(), exception.getFieldErrors());
+	}
+
+	@ExceptionHandler(MaxUploadSizeExceededException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public ErrorResponse handleMaxUploadSize(MaxUploadSizeExceededException exception) {
+		return new ErrorResponse("파일 크기가 너무 큽니다.", Map.of());
 	}
 
 }

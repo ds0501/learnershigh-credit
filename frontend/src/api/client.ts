@@ -54,3 +54,18 @@ export async function apiRequest<T>(
 export function apiGet<T>(path: string, params: QueryParams = {}, forceReal = false) {
   return apiRequest<T>('GET', path, { params, forceReal });
 }
+
+// 파일 업로드(FormData)는 mock으로 흉내 내기 어려워 항상 실제 백엔드로 보낸다.
+// Content-Type을 수동으로 지정하지 않는다(브라우저가 multipart 경계를 포함해 자동으로 붙인다)
+export async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: 'POST',
+    headers: { Accept: 'application/json' },
+    body: formData,
+  });
+  if (!response.ok) {
+    const detail = (await response.json().catch(() => null)) as { message?: string; fieldErrors?: Record<string, string> } | null;
+    throw new ApiError(response.status, detail?.message ?? `API 요청 실패 (${response.status}): ${path}`, detail?.fieldErrors);
+  }
+  return (await response.json()) as T;
+}

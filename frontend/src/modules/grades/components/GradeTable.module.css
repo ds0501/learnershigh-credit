@@ -1,0 +1,78 @@
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.table th,
+.table td {
+  padding: var(--space-3);
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.table th {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  font-weight: var(--font-weight-regular);
+}
+
+.empty {
+  color: var(--color-text-subtle);
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+}
+
+.badgeApplied {
+  background: var(--color-accent-dim);
+  color: var(--color-accent-strong);
+}
+
+.badgeUnmatched {
+  background: var(--color-caution-bg);
+  color: var(--color-caution);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.linkButton {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  font-size: var(--font-size-xs);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.linkButton:hover {
+  border-color: var(--color-accent-dim);
+  color: var(--color-accent);
+}
+
+.dangerButton {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-risk-border);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  font-size: var(--font-size-xs);
+  color: var(--color-risk);
+  cursor: pointer;
+}
+
+.confirmRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  color: var(--color-risk);
+}
