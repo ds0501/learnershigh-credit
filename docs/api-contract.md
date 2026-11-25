@@ -944,3 +944,102 @@ AI가 완성된 세특 문장을 쓰지 않고 **방향만** 3안 제안한다. 
 - 화면은 `detail`에 이유·탐구·활동 예시·4칸 포인트를 줄글로 저장하고, 4칸 위 접을 수 있는 "채택한 방향" 참고 영역에 보여 준다. 이후 PUT `/drafts/{id}`(8.4)로 4칸을 저장할 때도 지금 가이드라인을 함께 보내 유지한다.
 
 프론트: `frontend/src/modules/records/`. 진로 연결이 비어 있으면 화면이 희망 학과 이름(7장)을 기본값으로 채운다(저장 전까지는 화면에만 있음).
+
+## 9. 성적 관리 (`/api/student/grade`)
+
+나이스 성적표(성적증명서) PDF 업로드 또는 직접 입력으로 과목별 성적(원점수, 과목평균, 표준편차, 석차등급)을 관리한다. 데모 학생 고정.
+- 경로 접두사는 `/api/student/grade`. JSON·ID·오류 형식은 1장과 같다.
+- DB: `grade_upload`, `grade_record` (V10).
+- **PDF는 전자 텍스트 PDF로 가정한다(실제 나이스 PDF 샘플로 검증하지 못함, PROGRESS.md "미정" 참고).** 스캔 이미지거나 형식이 다르면 인식이 안 될 수 있고, 그런 경우 수동 입력으로 이어간다.
+- **credit 모듈 반영(설계 결정)**: 저장(추가·수정, PDF 인식 포함)할 때마다 `studentId + gradeYear + term + 과목명(catalog.name 또는 customName)`으로 `credit_student_course`를 찾는다. 찾으면 그 과목의 기존 `credit_assessment` 전체를 `score = round(rawScore / 100 × maxScore)`로 다시 쓴다(종류·제목·가중치·만점·날짜는 그대로). 가중치 합 규칙은 깨지지 않고, 결과 성취율이 성적표 원점수와 같아진다. 매칭된 과목에 평가가 하나도 없으면 반영하지 않는다(가중치 100%짜리 평가를 학생도 모르게 새로 만들지 않기 위함).
+- **학점제에 등록되지 않은 과목 자동 등록(설계 결정)**: `credit_student_course`에서 못 찾으면 표준 과목 목록(`credit_course_catalog`)에서 같은 이름을 찾는다. 있으면 그 이름으로 `credit_student_course`를 새로 등록하고(학점 4, 지필 60%/수행 40%, 성취도+5등급 표기, 이수 상태 완료로 기본값 — 학교 편성 정보가 성적표에 없어 임의로 정함, PROGRESS.md "미정" 참고) 평가 1건("성적표 반영", 지필 60%, 만점 100, 점수=원점수)을 만들어 그대로 반영한다. 표준 과목 목록에도 없으면(비표준 과목명, 또는 전문교과처럼 `credit_student_course`가 아직 지원하지 않는 유형) `NOT_FOUND`로 남긴다.
+- **중복 저장은 갱신**: 같은 학기에 같은 과목명이 PDF로 다시 인식되거나 같은 과목을 다시 직접 입력하면(`(student_id, grade_year, term, subject_name)` 유니크) 새로 만들지 않고 기존 값을 덮어쓴다(그리고 credit 반영도 다시 시도한다).
+- 레코드를 수정·삭제해도 이미 반영된 credit 점수는 되돌리지 않는다(PROGRESS.md "미정").
+
+값
+| 필드 | 값 |
+|---|---|
+| `source` | `PDF`(업로드로 인식), `MANUAL`(직접 입력·수정) |
+| `appliedToCredit` | `true`면 credit 모듈에 반영됨 |
+| `unmatchedReason` | `NOT_FOUND`(학점제에도 표준 과목 목록에도 없음), `AMBIGUOUS`(같은 과목이 여러 건), `NO_ASSESSMENT`(매칭은 됐지만 반영할 평가 없음), `null`(반영됨, 또는 원점수가 없어 반영을 시도하지 않음) |
+
+응답 객체(모든 API 공통)
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `id` | string | |
+| `gradeYear` | number | 1~3 |
+| `term` | number | 1 또는 2 |
+| `subjectName` | string | |
+| `rawScore` | number \| null | 0~100 |
+| `subjectAverage`, `stdDev` | number \| null | |
+| `gradeLevel` | number \| null | 1~9 |
+| `source`, `appliedToCredit`, `unmatchedReason` | | 위 표와 같음 |
+| `matchedCourseId` | string \| null | 반영된 `credit_student_course.id` |
+
+### 9.1 POST /api/student/grade/uploads
+나이스 성적표 PDF 업로드(multipart, 필드명 `file`). 파일은 파싱 후 버리고 메타만 `grade_upload`에 남긴다. 같은 학기·과목이 이미 있으면 값을 덮어쓴다. 응답 201.
+- 파일이 없으면 400 `fieldErrors.file`: "PDF 파일을 선택하세요."
+- 읽을 수 없는 파일이면 400 `fieldErrors.file`: "PDF 파일을 읽을 수 없습니다."
+- 10MB를 넘으면 400 "파일 크기가 너무 큽니다."
+
+응답 200
+```json
+{
+  "uploadId": "1",
+  "recognizedCount": 1,
+  "failedCount": 0,
+  "records": [
+    {
+      "id": "3", "gradeYear": 1, "term": 2, "subjectName": "공통수학1",
+      "rawScore": 95, "subjectAverage": 66.7, "stdDev": 8.0, "gradeLevel": 1,
+      "source": "PDF", "appliedToCredit": false, "unmatchedReason": "NOT_FOUND", "matchedCourseId": null
+    }
+  ]
+}
+```
+
+### 9.2 GET /api/student/grade/records?gradeYear=1&term=1
+학기별 성적 목록(등록 순서). `gradeYear`, `term`이 없으면 400.
+
+### 9.3 POST /api/student/grade/records
+직접 추가. 응답 201.
+
+요청
+| 필드 | 필수 | 설명 |
+|---|---|---|
+| `gradeYear` | 예 | 1~3 |
+| `term` | 예 | 1 또는 2 |
+| `subjectName` | 예 | 과목명(앞뒤 공백 제거) |
+| `rawScore`, `subjectAverage`, `stdDev`, `gradeLevel` | 아니오 | 비우면 null |
+
+검증과 실패 응답
+| 조건 | 응답 |
+|---|---|
+| `gradeYear`가 1~3이 아님 | 400 `fieldErrors.gradeYear`: "학년은 1~3 중 하나여야 합니다." |
+| `term`이 1·2가 아님 | 400 `fieldErrors.term`: "학기는 1 또는 2여야 합니다." |
+| `subjectName`이 비어 있음 | 400 `fieldErrors.subjectName`: "과목명을 입력하세요." |
+| 같은 학기에 같은 과목명이 이미 있음 | 400 `fieldErrors.subjectName`: "이미 등록된 과목입니다." |
+| `rawScore`가 0~100 밖 | 400 `fieldErrors.rawScore`: "원점수는 0~100 사이여야 합니다." |
+| `stdDev`가 음수 | 400 `fieldErrors.stdDev`: "표준편차는 0 이상이어야 합니다." |
+| `gradeLevel`이 1~9 밖 | 400 `fieldErrors.gradeLevel`: "등급은 1~9 중 하나여야 합니다." |
+
+요청 예시
+```json
+{ "gradeYear": 1, "term": 1, "subjectName": "공통국어1", "rawScore": 90, "subjectAverage": 75.5, "stdDev": 10.2, "gradeLevel": 2 }
+```
+응답 201 (credit에 등록된 과목이라 반영됨)
+```json
+{
+  "id": "1", "gradeYear": 1, "term": 1, "subjectName": "공통국어1",
+  "rawScore": 90, "subjectAverage": 75.5, "stdDev": 10.2, "gradeLevel": 2,
+  "source": "MANUAL", "appliedToCredit": true, "unmatchedReason": null, "matchedCourseId": "1"
+}
+```
+
+### 9.4 PUT /api/student/grade/records/{recordId}
+직접 수정. `gradeYear`, `term`, `subjectName`은 보내도 무시한다(과목 정체는 바꿀 수 없다). 검증은 9.3과 같음(점수 항목만). 응답 200, 없으면 404 "성적을 찾을 수 없습니다."
+
+### 9.5 DELETE /api/student/grade/records/{recordId}
+삭제. 응답 204. 없으면 404 "성적을 찾을 수 없습니다."
+
+프론트: `frontend/src/modules/grades/`.
